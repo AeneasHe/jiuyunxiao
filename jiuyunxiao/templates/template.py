@@ -50,10 +50,10 @@ def menu_button() -> xt.Component:
                 ],
                 xt.menu_divider(),
                 xt.menu_item(
-                    xt.link("About", href="https://github.com/dot-agent", width="100%")
+                    xt.link("关于", href="https://github.com/dot-agent", width="100%")
                 ),
                 xt.menu_item(
-                    xt.link("Contact", href="mailto:anurag@dotagent.ai", width="100%")
+                    xt.link("联系我们", href="mailto:anurag@dotagent.ai", width="100%")
                 ),
             ),
         ),

@@ -8,7 +8,7 @@ from jiuyunxiao.templates import template
 import nextpy as xt
 
 
-@template(route="/settings", title="Settings")
+@template(route="/settings", title="设置")
 def settings() -> xt.Component:
     """The settings page.
 

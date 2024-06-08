@@ -9,13 +9,14 @@ from jiuyunxiao.templates import template
 import nextpy as xt
 
 
-@template(route="/", title="Home", image="/github.svg")
+@template(route="/", title="首页", image="/github.svg")
 def index() -> xt.Component:
     """The home page.
 
     Returns:
         The UI for the home page.
     """
-    with open("README.md", encoding="utf-8") as readme:
-        content = readme.read()
-    return xt.markdown(content, component_map=styles.markdown_style)
+    return xt.vstack(
+        xt.heading("九云霄命理馆", font_size="3em"),
+        xt.text("欢迎来到九云霄命理馆"),
+    )

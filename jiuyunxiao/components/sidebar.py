@@ -20,6 +20,7 @@ def sidebar_header() -> xt.Component:
             src="/icon.svg",
             height="2em",
         ),
+        xt.text("九云霄",font_size="2em"),
         xt.spacer(),
         # Link to Nextpy GitHub repo.
         xt.link(
@@ -36,7 +37,7 @@ def sidebar_header() -> xt.Component:
                     "bg": styles.accent_color,
                 },
             ),
-            href="https://github.com/dot-agent/nextpy",
+            href="https://github.com/AeneasHe/jiuyunxiao",
         ),
         width="100%",
         border_bottom=styles.border,

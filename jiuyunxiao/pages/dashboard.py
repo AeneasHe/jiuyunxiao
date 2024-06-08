@@ -7,7 +7,7 @@ from jiuyunxiao.templates import template
 import nextpy as xt
 
 
-@template(route="/dashboard", title="Dashboard")
+@template(route="/dashboard", title="看板")
 def dashboard() -> xt.Component:
     """The dashboard page.
 
