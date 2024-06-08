@@ -12,8 +12,9 @@ from lunar_python import Lunar, Solar
 from colorama import init
 
 from datas import *
-from sizi import summarys
 from common import *
+
+from sizi import summarys
 from yue import months
 
 def get_gen(gan, zhis):
