@@ -5,8 +5,8 @@
 
 from __future__ import annotations
 
-from Giuyunxiao import styles
-from Giuyunxiao.components.sidebar import sidebar
+from jiuyunxiao import styles
+from jiuyunxiao.components.sidebar import sidebar
 from typing import Callable
 
 import nextpy as xt

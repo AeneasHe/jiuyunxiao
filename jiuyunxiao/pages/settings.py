@@ -3,7 +3,7 @@
 
 """The settings page."""
 
-from Giuyunxiao.templates import template
+from jiuyunxiao.templates import template
 
 import nextpy as xt
 

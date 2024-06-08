@@ -3,7 +3,7 @@
 
 """Sidebar component for the app."""
 
-from Giuyunxiao import styles
+from jiuyunxiao import styles
 
 import nextpy as xt
 

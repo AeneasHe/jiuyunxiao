@@ -3,10 +3,10 @@
 
 """Welcome to Nextpy!."""
 
-from Giuyunxiao import styles
+from jiuyunxiao import styles
 
 # Import all the pages.
-from Giuyunxiao.pages import *
+from jiuyunxiao.pages import *
 
 import nextpy as xt
 

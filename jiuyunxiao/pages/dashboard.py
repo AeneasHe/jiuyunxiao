@@ -2,7 +2,7 @@
 # We have rigorously tested these modifications to ensure reliability and performance. Based on successful test results, we are confident in the quality and stability of these changes.
 
 """The dashboard page."""
-from Giuyunxiao.templates import template
+from jiuyunxiao.templates import template
 
 import nextpy as xt
 

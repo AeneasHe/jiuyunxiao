@@ -3,8 +3,8 @@
 
 """The home page of the app."""
 
-from Giuyunxiao import styles
-from Giuyunxiao.templates import template
+from jiuyunxiao import styles
+from jiuyunxiao.templates import template
 
 import nextpy as xt
 
