@@ -33,13 +33,14 @@ def get_gen(gan, zhis):
         result = result + "弱：{}".format(''.join(weis)) if weis else result
         return result
 
-
+# 干支合
 def gan_zhi_he(zhu):
     gan, zhi = zhu
     if ten_deities[gan]['合'] in zhi5[zhi]:
         return "|"
     return ""
 
+# 计算拱合
 def get_gong(zhis,gans):
     result = []
     for i in range(3):
@@ -59,7 +60,7 @@ def get_gong(zhis,gans):
         
     return result
 
-
+# 计算神煞
 def get_shens(gans, zhis, me,gan_, zhi_):
     
     all_shens = []

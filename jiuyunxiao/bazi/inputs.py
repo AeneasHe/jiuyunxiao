@@ -25,25 +25,8 @@ optional arguments:
 python main.py 1977 8 11 19 -w
 '''
 
-class Ming:
-    # 命造
-    def __init__(self, gans,zhis,is_women,lunar):
-        self.gans = gans # 天干
-        self.zhis=zhis # 地支
-        self.is_women= is_women # 性别
-        self.lunar = lunar # 农历日期时辰
-        
-                # 四柱
-        zhus = [item for item in zip(gans, zhis)]
-        self.zhus= zhus
-        # 日元
-        self.me = gans.day
+from mingzao import Ming
 
-        # 月令
-        self.month = zhis.month
-
-        # 命主八字列表
-        self.alls = list(gans) + list(zhis)
 
 def get_input():
     parser = argparse.ArgumentParser(description=description,
