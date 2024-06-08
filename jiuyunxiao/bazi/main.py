@@ -3,6 +3,8 @@
 # Author: Aeneas(aeneas.he@gmail.com)
 # CreateDate: 2019-2-21
 
+# python main.py 1977 8 11 19 -n
+
 import argparse
 import collections
 import pprint
@@ -10,193 +12,41 @@ import datetime
 
 from lunar_python import Lunar, Solar
 from colorama import init
-
-from datas import *
-from common import *
-
 from sizi import summarys
 from yue import months
 
-def get_gen(gan, zhis):
-    zhus = []
-    zhongs = []
-    weis = []
-    result = ""
-    for item in zhis:
-        zhu = zhi5_list[item][0]
-        if ten_deities[gan]['本'] == ten_deities[zhu]['本']:
-            zhus.append(item)
+from datas import *
+from common import *
+from gets import *
+from inputs import get_input
+from dayun import get_yun    
 
-    for item in zhis:
-        if len(zhi5_list[item]) ==1:
-            continue
-        zhong = zhi5_list[item][1]
-        if ten_deities[gan]['本'] == ten_deities[zhong]['本']:
-            zhongs.append(item)
-
-    for item in zhis:
-        if len(zhi5_list[item]) < 3:
-            continue
-        zhong = zhi5_list[item][2]
-        if ten_deities[gan]['本'] == ten_deities[zhong]['本']:
-            weis.append(item)
-
-    if not (zhus or zhongs or weis):
-        return "无根"
-    else:
-        result = result + "强：{}{}".format(''.join(zhus), chr(12288)) if zhus else result
-        result = result + "中：{}{}".format(''.join(zhongs), chr(12288)) if zhongs else result
-        result = result + "弱：{}".format(''.join(weis)) if weis else result
-        return result
-
-
-def gan_zhi_he(zhu):
-    gan, zhi = zhu
-    if ten_deities[gan]['合'] in zhi5[zhi]:
-        return "|"
-    return ""
-
-def get_gong(zhis):
-    result = []
-    for i in range(3):
-        if  gans[i] != gans[i+1]:
-            continue
-        zhi1 = zhis[i]
-        zhi2 = zhis[i+1]
-        if abs(Zhi.index(zhi1) - Zhi.index(zhi2)) == 2:
-            value = Zhi[(Zhi.index(zhi1) + Zhi.index(zhi2))//2]
-            #if value in ("丑", "辰", "未", "戌"):
-            result.append(value)
-        if (zhi1 + zhi2 in gong_he) and (gong_he[zhi1 + zhi2] not in zhis):
-            result.append(gong_he[zhi1 + zhi2]) 
-            
-        #if (zhi1 + zhi2 in gong_hui) and (gong_hui[zhi1 + zhi2] not in zhis):
-            #result.append(gong_hui[zhi1 + zhi2])             
-        
-    return result
-
-
-def get_shens(gans, zhis, gan_, zhi_):
-    
-    all_shens = []
-    for item in year_shens:
-        if zhi_ in year_shens[item][zhis.year]:    
-            all_shens.append(item)
-                
-    for item in month_shens:
-        if gan_ in month_shens[item][zhis.month] or zhi_ in month_shens[item][zhis.month]:     
-            all_shens.append(item)
-                
-    for item in day_shens:
-        if zhi_ in day_shens[item][zhis.day]:     
-            all_shens.append(item)
-                
-    for item in g_shens:
-        if zhi_ in g_shens[item][me]:    
-            all_shens.append(item) 
-    if all_shens:  
-        return "  神:" + ' '.join(all_shens)
-    else:
-        return ""
-                
-def jin_jiao(first, second):
-    return True if Zhi.index(second) - Zhi.index(first) == 1 else False
-
-def is_ku(zhi):
-    return True if zhi in "辰戌丑未" else False  
-
-def zhi_ku(zhi, items):
-    return True if is_ku(zhi) and min(zhi5[zhi], key=zhi5[zhi].get) in items else False
-
-def is_yang():
-    return True if Gan.index(me) % 2 == 0 else False
-
-def not_yang():
-    return False if Gan.index(me) % 2 == 0 else True
-
-def gan_ke(gan1, gan2):
-    return True if ten_deities[gan1]['克'] == ten_deities[gan2]['本'] or ten_deities[gan2]['克'] == ten_deities[gan1]['本'] else False
-    
-description = '''
-
-'''
-
-parser = argparse.ArgumentParser(description=description,
-                                 formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('year', action="store", help=u'year')
-parser.add_argument('month', action="store", help=u'month')
-parser.add_argument('day', action="store", help=u'day')
-parser.add_argument('time', action="store",help=u'time')    
-parser.add_argument("--start", help="start year", type=int, default=1850)
-parser.add_argument("--end", help="end year", default='2030')
-parser.add_argument('-b', action="store_true", default=False, help=u'直接输入八字')
-parser.add_argument('-g', action="store_true", default=False, help=u'是否采用公历')
-parser.add_argument('-r', action="store_true", default=False, help=u'是否为闰月，仅仅使用于农历')
-parser.add_argument('-n', action="store_true", default=False, help=u'是否为女，默认为男')
-parser.add_argument('--version', action='version',
-                    version='%(prog)s 1.0 Rongzhong xu 2022 06 15')
-options = parser.parse_args()
-
-Gans = collections.namedtuple("Gans", "year month day time")
-Zhis = collections.namedtuple("Zhis", "year month day time")
-
-print("-"*120)
-
-if options.b:
-    import sxtwl
-    gans = Gans(year=options.year[0], month=options.month[0], 
-                day=options.day[0],  time=options.time[0])
-    zhis = Gans(year=options.year[1], month=options.month[1], 
-                day=options.day[1],  time=options.time[1])
-    jds = sxtwl.siZhu2Year(getGZ(options.year), getGZ(options.month), getGZ(options.day), getGZ(options.time), options.start, int(options.end));
-    for jd in jds:
-        t = sxtwl.JD2DD(jd )
-        print("可能出生时间: python bazi.py -g %d %d %d %d :%d:%d"%(t.Y, t.M, t.D, t.h, t.m, round(t.s)))   
-    
-else:
-
-    if options.g:
-        solar = Solar.fromYmdHms(int(options.year), int(options.month), int(options.day), int(options.time), 0, 0)
-        lunar = solar.getLunar()
-    else:
-        month_ = int(options.month)*-1 if options.r else int(options.month)
-        lunar = Lunar.fromYmdHms(int(options.year), month_, int(options.day),int(options.time), 0, 0)
-        solar = lunar.getSolar()
-
-    day = lunar
-    ba = lunar.getEightChar() 
-    gans = Gans(year=ba.getYearGan(), month=ba.getMonthGan(), day=ba.getDayGan(), time=ba.getTimeGan())
-    zhis = Zhis(year=ba.getYearZhi(), month=ba.getMonthZhi(), day=ba.getDayZhi(), time=ba.getTimeZhi())
-
-
-me = gans.day
-month = zhis.month
-alls = list(gans) + list(zhis)
-zhus = [item for item in zip(gans, zhis)]
+# 命造
+ming= get_input()
 
 gan_shens = []
-for seq, item in enumerate(gans):    
+for seq, item in enumerate(ming.gans):    
     if seq == 2:
         gan_shens.append('--')
     else:
-        gan_shens.append(ten_deities[me][item])
+        gan_shens.append(ten_deities[ming.me][item])
 #print(gan_shens)
 
 zhi_shens = [] # 地支的主气神
-for item in zhis:
+for item in ming.zhis:
     d = zhi5[item]
-    zhi_shens.append(ten_deities[me][max(d, key=d.get)])
+    zhi_shens.append(ten_deities[ming.me][max(d, key=d.get)])
 #print(zhi_shens)
 shens = gan_shens + zhi_shens
 
 zhi_shens2 = [] # 地支的所有神，包含余气和尾气, 混合在一起
 zhi_shen3 = [] # 地支所有神，字符串格式
-for item in zhis:
+for item in ming.zhis:
     d = zhi5[item]
     tmp = ''
     for item2 in d:
-        zhi_shens2.append(ten_deities[me][item2])
-        tmp += ten_deities[me][item2]
+        zhi_shens2.append(ten_deities[ming.me][item2])
+        tmp += ten_deities[ming.me][item2]
     zhi_shen3.append(tmp)
 shens2 = gan_shens + zhi_shens2
     
@@ -208,12 +58,12 @@ scores = {"金":0, "木":0, "水":0, "火":0, "土":0}
 gan_scores = {"甲":0, "乙":0, "丙":0, "丁":0, "戊":0, "己":0, "庚":0, "辛":0,
               "壬":0, "癸":0}   
 
-for item in gans:  
+for item in ming.gans:  
     scores[gan5[item]] += 5
     gan_scores[item] += 5
 
 
-for item in list(zhis) + [zhis.month]:  
+for item in list(ming.zhis) + [ming.zhis.month]:  
     for gan in zhi5[item]:
         scores[gan5[gan]] += zhi5[item][gan]
         gan_scores[gan] += zhi5[item][gan]
@@ -223,9 +73,9 @@ for item in list(zhis) + [zhis.month]:
 # 子平真诠的计算
 weak = True
 me_status = []
-for item in zhis:
-    me_status.append(ten_deities[me][item])
-    if ten_deities[me][item] in ('长', '帝', '建'):
+for item in ming.zhis:
+    me_status.append(ten_deities[ming.me][item])
+    if ten_deities[ming.me][item] in ('长', '帝', '建'):
         weak = False
         
 
@@ -234,8 +84,8 @@ if weak:
         weak = False
 
 # 计算大运
-seq = Gan.index(gans.year)
-if options.n:
+seq = Gan.index(ming.gans.year)
+if ming.is_women:
     if seq % 2 == 0:
         direction = -1
     else:
@@ -247,31 +97,18 @@ else:
         direction = -1
 
 dayuns = []
-gan_seq = Gan.index(gans.month)
-zhi_seq = Zhi.index(zhis.month)
+gan_seq = Gan.index(ming.gans.month)
+zhi_seq = Zhi.index(ming.zhis.month)
 for i in range(12):
     gan_seq += direction
     zhi_seq += direction
     dayuns.append(Gan[gan_seq%10] + Zhi[zhi_seq%12])
 
 # 网上的计算
-me_attrs_ = ten_deities[me].inverse
+me_attrs_ = ten_deities[ming.me].inverse
 strong = gan_scores[me_attrs_['比']] + gan_scores[me_attrs_['劫']] \
     + gan_scores[me_attrs_['枭']] + gan_scores[me_attrs_['印']]
 
-
-if not options.b:
-    #print("direction",direction)
-    sex = '女' if options.n else '男'
-    print("{}命".format(sex), end=' ')
-    print("\t公历:", end=' ')
-    print("{}年{}月{}日".format(solar.getYear(), solar.getMonth(), solar.getDay()), end=' ')
-    yun = ba.getYun(not options.n)   
-    print("  农历:", end=' ')
-    print("{}年{}月{}日 穿=害 上运时间：{} 命宫:{} 胎元:{}\n".format(lunar.getYear(), lunar.getMonth(), 
-        lunar.getDay(), yun.getStartSolar().toFullString().split()[0], ba.getMingGong(), ba.getTaiYuan()), end=' ')
-    print("\t", siling[zhis.month], lunar.getPrevJieQi(True), lunar.getPrevJieQi(True).getSolar().toYmdHms(),lunar.getNextJieQi(True), 
-        lunar.getNextJieQi(True).getSolar().toYmdHms())
 
 
 print("-"*120)
@@ -281,59 +118,59 @@ print("-"*120)
 out = ''
 for item in zhi_3hes:
     out = out + "{}:{}  ".format(item, zhi_3hes[item])
-print('\033[1;36;40m' + ' '.join(list(gans)), ' '*5, ' '.join(list(gan_shens)) + '\033[0m',' '*5, out,)
+print('\033[1;36;40m' + ' '.join(list(ming.gans)), ' '*5, ' '.join(list(gan_shens)) + '\033[0m',' '*5, out,)
 out = ''
 
-print('\033[1;36;40m' + ' '.join(list(zhis)), ' '*5, ' '.join(list(zhi_shens)) + '\033[0m', ' '*5, out, "解读:钉ding或v信pythontesting")
+print('\033[1;36;40m' + ' '.join(list(ming.zhis)), ' '*5, ' '.join(list(zhi_shens)) + '\033[0m', ' '*5, out, "解读:钉ding或v信pythontesting")
 print("-"*120)
-print("{1:{0}^15s}{2:{0}^15s}{3:{0}^15s}{4:{0}^15s}".format(chr(12288), '【年】{}:{}{}{}'.format(temps[gans.year],temps[zhis.year],ten_deities[gans.year].inverse['建'], gan_zhi_he(zhus[0])), 
-    '【月】{}:{}{}{}'.format(temps[gans.month],temps[zhis.month], ten_deities[gans.month].inverse['建'], gan_zhi_he(zhus[1])),
-    '【日】{}:{}{}'.format(temps[me], temps[zhis.day], gan_zhi_he(zhus[2])), 
-    '【时】{}:{}{}{}'.format(temps[gans.time], temps[zhis.time], ten_deities[gans.time].inverse['建'], gan_zhi_he(zhus[3]))))
+print("{1:{0}^15s}{2:{0}^15s}{3:{0}^15s}{4:{0}^15s}".format(chr(12288), '【年】{}:{}{}{}'.format(temps[ming.gans.year],temps[ming.zhis.year],ten_deities[ming.gans.year].inverse['建'], gan_zhi_he(ming.zhus[0])), 
+    '【月】{}:{}{}{}'.format(temps[ming.gans.month],temps[ming.zhis.month], ten_deities[ming.gans.month].inverse['建'], gan_zhi_he(ming.zhus[1])),
+    '【日】{}:{}{}'.format(temps[ming.me], temps[ming.zhis.day], gan_zhi_he(ming.zhus[2])), 
+    '【时】{}:{}{}{}'.format(temps[ming.gans.time], temps[ming.zhis.time], ten_deities[ming.gans.time].inverse['建'], gan_zhi_he(ming.zhus[3]))))
 print("-"*120)
 
 
 print("\033[1;36;40m{1:{0}<15s}{2:{0}<15s}{3:{0}<15s}{4:{0}<15s}\033[0m".format(
     chr(12288),
     '{}{}{}【{}】{}'.format(
-        gans.year, yinyang(gans.year), gan5[gans.year], ten_deities[me][gans.year], check_gan(gans.year, gans)),
+        ming.gans.year, yinyang(ming.gans.year), gan5[ming.gans.year], ten_deities[ming.me][ming.gans.year], check_gan(ming.gans.year, ming.gans)),
     '{}{}{}【{}】{}'.format(
-        gans.month, yinyang(gans.month), gan5[gans.month], ten_deities[me][gans.month], check_gan(gans.month, gans)),
-    '{}{}{}{}'.format(me, yinyang(me),gan5[me], check_gan(me, gans)),
-    '{}{}{}【{}】{}'.format(gans.time, yinyang(gans.time), gan5[gans.time], ten_deities[me][gans.time], check_gan(gans.time, gans)),
+        ming.gans.month, yinyang(ming.gans.month), gan5[ming.gans.month], ten_deities[ming.me][ming.gans.month], check_gan(ming.gans.month, ming.gans)),
+    '{}{}{}{}'.format(ming.me, yinyang(ming.me),gan5[ming.me], check_gan(ming.me, ming.gans)),
+    '{}{}{}【{}】{}'.format(ming.gans.time, yinyang(ming.gans.time), gan5[ming.gans.time], ten_deities[ming.me][ming.gans.time], check_gan(ming.gans.time, ming.gans)),
 ))
 
 print("\033[1;36;40m{1:{0}<15s}{2:{0}<15s}{3:{0}<15s}{4:{0}<15s}\033[0m".format(
     chr(12288),
     "{}{}{}【{}】{}".format(
-        zhis.year, yinyang(zhis.year), ten_deities[me][zhis.year],
-        ten_deities[gans.year][zhis.year], get_empty(zhus[2],zhis.year)),
+        ming.zhis.year, yinyang(ming.zhis.year), ten_deities[ming.me][ming.zhis.year],
+        ten_deities[ming.gans.year][ming.zhis.year], get_empty(ming.zhus[2],ming.zhis.year)),
     "{}{}{}【{}】{}".format(
-        zhis.month, yinyang(zhis.month), ten_deities[me][zhis.month],
-        ten_deities[gans.month][zhis.month], get_empty(zhus[2],zhis.month)),
-    "{}{}{}".format(zhis.day, yinyang(zhis.day), ten_deities[me][zhis.day]),   
+        ming.zhis.month, yinyang(ming.zhis.month), ten_deities[ming.me][ming.zhis.month],
+        ten_deities[ming.gans.month][ming.zhis.month], get_empty(ming.zhus[2],ming.zhis.month)),
+    "{}{}{}".format(ming.zhis.day, yinyang(ming.zhis.day), ten_deities[ming.me][ming.zhis.day]),   
     "{}{}{}【{}】{}".format(
-        zhis.time, yinyang(zhis.time), ten_deities[me][zhis.time], 
-        ten_deities[gans.time][zhis.time], get_empty(zhus[2],zhis.time)),
+        ming.zhis.time, yinyang(ming.zhis.time), ten_deities[ming.me][ming.zhis.time], 
+        ten_deities[ming.gans.time][ming.zhis.time], get_empty(ming.zhus[2],ming.zhis.time)),
 ))
 
-statuses = [ten_deities[me][item] for item in zhis]
+statuses = [ten_deities[ming.me][item] for item in ming.zhis]
 
 
-for seq, item in enumerate(zhis):
+for seq, item in enumerate(ming.zhis):
     out = ''
-    multi = 2 if item == zhis.month and seq == 1 else 1
+    multi = 2 if item == ming.zhis.month and seq == 1 else 1
 
     for gan in zhi5[item]:
-        out = out + "{}{}{}　".format(gan, gan5[gan], ten_deities[me][gan])
+        out = out + "{}{}{}　".format(gan, gan5[gan], ten_deities[ming.me][gan])
     print("\033[1;36;40m{1:{0}<15s}\033[0m".format(chr(12288), out.rstrip('　')), end='')
 
 print()
 # 输出地支关系
-for seq, item in enumerate(zhis):
+for seq, item in enumerate(ming.zhis):
 
     output = ''
-    others = zhis[:seq] + zhis[seq+1:] 
+    others = ming.zhis[:seq] + ming.zhis[seq+1:] 
     for type_ in zhi_atts[item]:
         flag = False
         if type_ in ('害',"破","会",'刑'):
@@ -351,10 +188,10 @@ for seq, item in enumerate(zhis):
 print()
 
 # 输出地支minor关系
-for seq, item in enumerate(zhis):
+for seq, item in enumerate(ming.zhis):
 
     output = ''
-    others = zhis[:seq] + zhis[seq+1:] 
+    others = ming.zhis[:seq] + ming.zhis[seq+1:] 
     for type_ in zhi_atts[item]:
         flag = False
         if type_ not in ('害',"会"):
@@ -371,24 +208,24 @@ for seq, item in enumerate(zhis):
 print()
 
 # 输出根
-for  item in gans:
+for  item in ming.gans:
     output = output.lstrip('　')
-    print("\033[1;36;40m{1:{0}<15s}\033[0m".format(chr(12288), get_gen(item, zhis)), end='')
+    print("\033[1;36;40m{1:{0}<15s}\033[0m".format(chr(12288), get_gen(item, ming.zhis)), end='')
 
 print()
 
-for seq, item in enumerate(zhus):
+for seq, item in enumerate(ming.zhus):
 
     # 检查空亡 
-    result = "{}－{}".format(nayins[item], '亡') if zhis[seq] == wangs[zhis[0]] else nayins[item]
+    result = "{}－{}".format(nayins[item], '亡') if ming.zhis[seq] == wangs[ming.zhis[0]] else nayins[item]
     
     # 天干与地支关系
-    result = relations[(gan5[gans[seq]], zhi_wuhangs[zhis[seq]])] + result
+    result = relations[(gan5[ming.gans[seq]], zhi_wuhangs[ming.zhis[seq]])] + result
         
     # 检查劫杀 
-    result = "{}－{}".format(result, '劫杀') if zhis[seq] == jieshas[zhis[0]] else result
+    result = "{}－{}".format(result, '劫杀') if ming.zhis[seq] == jieshas[ming.zhis[0]] else result
     # 检查元辰
-    result = "{}－{}".format(result, '元辰') if zhis[seq] == Zhi[(Zhi.index(zhis[0]) + direction*-1*5)%12] else result    
+    result = "{}－{}".format(result, '元辰') if ming.zhis[seq] == Zhi[(Zhi.index(ming.zhis[0]) + direction*-1*5)%12] else result    
     print("{1:{0}<15s} ".format(chr(12288), result), end='')
 
 print()
@@ -404,30 +241,30 @@ all_shens_list = []
 
 for item in year_shens:
     for i in (1,2,3):
-        if zhis[i] in year_shens[item][zhis.year]:    
+        if ming.zhis[i] in year_shens[item][ming.zhis.year]:    
             strs[i] = item if not strs[i] else strs[i] + chr(12288) + item
             all_shens.add(item)
             all_shens_list.append(item)
             
 for item in month_shens:
     for i in range(4):
-        if gans[i] in month_shens[item][zhis.month] or zhis[i] in month_shens[item][zhis.month]:     
+        if ming.gans[i] in month_shens[item][ming.zhis.month] or ming.zhis[i] in month_shens[item][ming.zhis.month]:     
             strs[i] = item if not strs[i] else strs[i] + chr(12288) + item
-            if i == 2 and gans[i] in month_shens[item][zhis.month]:
+            if i == 2 and ming.gans[i] in month_shens[item][ming.zhis.month]:
                 strs[i] = strs[i] + "●"
             all_shens.add(item)
             all_shens_list.append(item)
             
 for item in day_shens:
     for i in (0,1,3):
-        if zhis[i] in day_shens[item][zhis.day]:     
+        if ming.zhis[i] in day_shens[item][ming.zhis.day]:     
             strs[i] = item if not strs[i] else strs[i] + chr(12288) + item    
             all_shens.add(item)
             all_shens_list.append(item)
             
 for item in g_shens:
     for i in range(4):
-        if zhis[i] in g_shens[item][me]:    
+        if ming.zhis[i] in g_shens[item][ming.me]:    
             strs[i] = item if not strs[i] else strs[i] + chr(12288) + item
             all_shens.add(item)
             all_shens_list.append(item)
@@ -446,7 +283,7 @@ for seq in range(2,4):
 zhi_6he = [False, False, False, False]
 
 for i in range(3):
-    if zhi_atts[zhis[i]]['六'] == zhis[i+1]:
+    if zhi_atts[ming.zhis[i]]['六'] == ming.zhis[i+1]:
         zhi_6he[i] = zhi_6he[i+1] = True
         
 # 计算六冲:相邻的才算合
@@ -454,14 +291,14 @@ for i in range(3):
 zhi_6chong = [False, False, False, False]
 
 for i in range(3):
-    if zhi_atts[zhis[i]]['冲'] == zhis[i+1]:
+    if zhi_atts[ming.zhis[i]]['冲'] == ming.zhis[i+1]:
         zhi_6chong[i] = zhi_6chong[i+1] = True
         
 # 计算干合:相邻的才算合
 
 gan_he = [False, False, False, False]
 for i in range(3):
-    if (gans[i],gans[i+1]) in set(gan_hes) or (gans[i+1],gans[i]) in set(gan_hes):
+    if (ming.gans[i],ming.gans[i+1]) in set(gan_hes) or (ming.gans[i+1],ming.gans[i]) in set(gan_hes):
         gan_he[i] = gan_he[i+1] = True
         
 # 计算刑:相邻的才算
@@ -469,7 +306,7 @@ for i in range(3):
 zhi_xing = [False, False, False, False]
 
 for i in range(3):
-    if zhi_atts[zhis[i]]['刑'] == zhis[i+1] or zhi_atts[zhis[i+1]]['刑'] == zhis[i]:
+    if zhi_atts[ming.zhis[i]]['刑'] == ming.zhis[i+1] or zhi_atts[ming.zhis[i+1]]['刑'] == ming.zhis[i]:
         zhi_xing[i] = zhi_xing[i+1] = True
 print()
 print("-"*120)       
@@ -478,42 +315,42 @@ print("大运：", end=' ')
 for item in dayuns:
     print(item, end=' ')
 print()
-# for item in gans:
-#     print(get_gen(item, zhis), end=" \t")
+# for item in ming.gans:
+#     print(get_gen(item, ming.zhis), end=" \t")
 # print()
 print("-"*120)
 
-me_lu = ten_deities[me].inverse['建']
+me_lu = ten_deities[ming.me].inverse['建']
 
-me_jue = ten_deities[me].inverse['绝']
-me_tai = ten_deities[me].inverse['胎']
-me_di = ten_deities[me].inverse['帝']
-shang = ten_deities[me].inverse['伤']
+me_jue = ten_deities[ming.me].inverse['绝']
+me_tai = ten_deities[ming.me].inverse['胎']
+me_di = ten_deities[ming.me].inverse['帝']
+shang = ten_deities[ming.me].inverse['伤']
 shang_lu = ten_deities[shang].inverse['建']
 shang_di = ten_deities[shang].inverse['帝']
-yin = ten_deities[me].inverse['印']
+yin = ten_deities[ming.me].inverse['印']
 yin_lu = ten_deities[yin].inverse['建']
-xiao = ten_deities[me].inverse['枭']
+xiao = ten_deities[ming.me].inverse['枭']
 xiao_lu = ten_deities[xiao].inverse['建']
-cai = ten_deities[me].inverse['财']
+cai = ten_deities[ming.me].inverse['财']
 cai_lu = ten_deities[cai].inverse['建']
 cai_di = ten_deities[cai].inverse['帝']
-piancai = ten_deities[me].inverse['才']
+piancai = ten_deities[ming.me].inverse['才']
 piancai_lu = ten_deities[piancai].inverse['建']
 piancai_di = ten_deities[piancai].inverse['帝']
-guan = ten_deities[me].inverse['官']
+guan = ten_deities[ming.me].inverse['官']
 guan_lu = ten_deities[guan].inverse['建']
 guan_di = ten_deities[guan].inverse['帝']
-sha = ten_deities[me].inverse['杀']
+sha = ten_deities[ming.me].inverse['杀']
 sha_lu = ten_deities[sha].inverse['建']
 sha_di = ten_deities[sha].inverse['帝']
 
-jie = ten_deities[me].inverse['劫']
-shi = ten_deities[me].inverse['食']
+jie = ten_deities[ming.me].inverse['劫']
+shi = ten_deities[ming.me].inverse['食']
 shi_lu = ten_deities[shi].inverse['建']
 shi_di = ten_deities[shi].inverse['帝']
 
-me_ku = ten_deities[me]['库'][0]
+me_ku = ten_deities[ming.me]['库'][0]
 cai_ku = ten_deities[cai]['库'][0]
 guan_ku = ten_deities[guan]['库'][0]
 yin_ku = ten_deities[yin]['库'][0]
@@ -521,54 +358,54 @@ shi_ku = ten_deities[shi]['库'][0]
 
 
 
-print("调候：", tiaohous['{}{}'.format(me, zhis[1])], "\t##金不换大运：", jinbuhuan['{}{}'.format(me, zhis[1])])
-print("金不换大运：说明：", jins['{}'.format(me)])
-print("格局选用：", ges[ten_deities[me]['本']][zhis[1]])
-if len(set('寅申巳亥')&set(zhis)) == 0:
+print("调候：", tiaohous['{}{}'.format(ming.me, ming.zhis[1])], "\t##金不换大运：", jinbuhuan['{}{}'.format(ming.me, ming.zhis[1])])
+print("金不换大运：说明：", jins['{}'.format(ming.me)])
+print("格局选用：", ges[ten_deities[ming.me]['本']][ming.zhis[1]])
+if len(set('寅申巳亥')&set(ming.zhis)) == 0:
     print("缺四生：一生不敢作为")
-if len(set('子午卯酉')&set(zhis)) == 0:
+if len(set('子午卯酉')&set(ming.zhis)) == 0:
     print("缺四柱地支缺四正，一生避是非")
-if len(set('辰戌丑未')&set(zhis)) == 0:
+if len(set('辰戌丑未')&set(ming.zhis)) == 0:
     print("四柱地支缺四库，一生没有潜伏性凶灾。")
-if ( '甲', '戊', '庚',) in (tuple(gans)[:3], tuple(gans)[1:]):
+if ( '甲', '戊', '庚',) in (tuple(ming.gans)[:3], tuple(ming.gans)[1:]):
     print("地上三奇：白天生有申佳，需身强四柱有贵人。")
-if ( '辛', '壬', '癸',) in (tuple(gans)[:3], tuple(gans)[1:]):
+if ( '辛', '壬', '癸',) in (tuple(ming.gans)[:3], tuple(ming.gans)[1:]):
     print("人间三奇，需身强四柱有贵人。")
-if ( '乙', '丙', '丁',) in (tuple(gans)[:3], tuple(gans)[1:]):
+if ( '乙', '丙', '丁',) in (tuple(ming.gans)[:3], tuple(ming.gans)[1:]):
     print("天上三奇：晚上生有亥佳，需身强四柱有贵人。")
     
 if zhi_shens2.count('亡神') > 1:
     print("二重亡神，先丧母；")
     
-if get_empty(zhus[2],zhis.time):
+if get_empty(ming.zhus[2],ming.zhis.time):
     print("时坐空亡，子息少。 母法P24-41 母法P79-4：损破祖业，后另再成就。")
     
-if zhis.count(me_jue) + zhis.count(me_tai) > 2:
+if ming.zhis.count(me_jue) + ming.zhis.count(me_tai) > 2:
     print("胎绝超过3个：夭或穷。母法P24-44 丁未 壬子 丙子 戊子")
        
-if not_yang() and zhi_ku(zhis[2], (me,jie)) and zhi_ku(zhis[3], (me,jie)):
+if not_yang(ming.me) and zhi_ku(ming.zhis[2], (ming.me,jie)) and zhi_ku(ming.zhis[3], (ming.me,jie)):
     print("阴日主时日支入比劫库：性格孤独，难发达。母法P28-112 甲申 辛未 辛丑 己丑 母法P55-11 为人孤独，且有灾疾")
 
 #print(cai_lu, piancai_lu)
-if zhis[1:].count(piancai_lu) + zhis[1:].count(cai_lu) + zhis[1:].count(piancai_di) + zhis[1:].count(cai_di) == 0:
+if ming.zhis[1:].count(piancai_lu) + ming.zhis[1:].count(cai_lu) + ming.zhis[1:].count(piancai_di) + ming.zhis[1:].count(cai_di) == 0:
     print("月日时支没有财或偏财的禄旺。")
     
-if zhis[1:].count(guan_lu) + zhis[1:].count(guan_di) == 0:
+if ming.zhis[1:].count(guan_lu) + ming.zhis[1:].count(guan_di) == 0:
     print("月日时支没有官的禄旺。")
     
-if '辰' in zhis and ('戌' not in zhis) and options.n: 
+if '辰' in ming.zhis and ('戌' not in ming.zhis) and ming.is_women: 
     print("女命有辰无戌：孤。")
-if '戌' in zhis and ('辰' not in zhis) and options.n: 
+if '戌' in ming.zhis and ('辰' not in ming.zhis) and ming.is_women: 
     print("女命有戌无辰：带禄。")
     
-if emptie4s.get(zhus[2], 0) != 0:
+if emptie4s.get(ming.zhus[2], 0) != 0:
     if scores[emptie4s.get(zhus[2], 0)] == 0:
         print("四大空亡：33岁以前身体不佳！")
 
 for item in all_shens:
     print(item, ":",  shens_infos[item])
     
-if options.n:
+if ming.is_women:
     print("#"*20, "女命")
     if all_shens_list.count("驿马") > 1:
         print("二逢驿马，母家荒凉。P110 丙申 丙申 甲寅 丁卯")
@@ -579,15 +416,15 @@ print("-"*120)
             
 
 
-children = ['食','伤'] if options.n else ['官','杀']
+children = ['食','伤'] if ming.is_women else ['官','杀']
 
-liuqins = bidict({'才': '父亲',"财":'财' if options.n else '妻', "印": '母亲', "枭": '偏印' if options.n else '祖父',
-                  "官":'丈夫' if options.n else '女儿', "杀":'情夫' if options.n else '儿子', "劫":'兄弟' if options.n else '姐妹', "比":'姐妹' if options.n else '兄弟', 
-                  "食":'女儿' if options.n else '下属', "伤":'儿子' if options.n else '孙女'})
+liuqins = bidict({'才': '父亲',"财":'财' if ming.is_women else '妻', "印": '母亲', "枭": '偏印' if ming.is_women else '祖父',
+                  "官":'丈夫' if ming.is_women else '女儿', "杀":'情夫' if ming.is_women else '儿子', "劫":'兄弟' if ming.is_women else '姐妹', "比":'姐妹' if ming.is_women else '兄弟', 
+                  "食":'女儿' if ming.is_women else '下属', "伤":'儿子' if ming.is_women else '孙女'})
 
 # 六亲分析
 for item in Gan:
-    print("{}:{} {}-{} {} {} {}".format(item, ten_deities[me][item], liuqins[ten_deities[me][item]],  ten_deities[item][zhis[0]] ,ten_deities[item][zhis[1]], ten_deities[item][zhis[2]], ten_deities[item][zhis[3]]), end='  ')
+    print("{}:{} {}-{} {} {} {}".format(item, ten_deities[ming.me][item], liuqins[ten_deities[ming.me][item]],  ten_deities[item][ming.zhis[0]] ,ten_deities[item][ming.zhis[1]], ten_deities[item][ming.zhis[2]], ten_deities[item][ming.zhis[3]]), end='  ')
     if Gan.index(item) == 4:
         print()
     
@@ -596,62 +433,62 @@ print()
 
 # 计算上运时间，有年份时才适用
 
-temps_scores = temps[gans.year] + temps[gans.month] + temps[me] + temps[gans.time] + temps[zhis.year] + temps[zhis.month]*2 + temps[zhis.day] + temps[zhis.time]
+temps_scores = temps[ming.gans.year] + temps[ming.gans.month] + temps[ming.me] + temps[ming.gans.time] + temps[ming.zhis.year] + temps[ming.zhis.month]*2 + temps[ming.zhis.day] + temps[ming.zhis.time]
 print("\033[1;36;40m五行分数", scores, '  八字强弱：', strong, "通常>29为强，需要参考月份、坐支等", "weak:", weak)
 
-gongs = get_gong(zhis)
-zhis_g = set(zhis) | set(gongs)
+gongs = get_gong(ming.zhis,ming.gans)
+ming.zhis_g = set(ming.zhis) | set(gongs)
 
 jus = []
 for item in zhi_hes:
-    if set(item).issubset(zhis_g):
+    if set(item).issubset(ming.zhis_g):
         print("三合局", item)
-        jus.append(ju[ten_deities[me].inverse[zhi_hes[item]]])
+        jus.append(ju[ten_deities[ming.me].inverse[zhi_hes[item]]])
         
         
 for item in zhi_huis:
-    if set(item).issubset(zhis_g):
+    if set(item).issubset(ming.zhis_g):
         print("三会局", item)
-        jus.append(ju[ten_deities[me].inverse[zhi_huis[item]]])
+        jus.append(ju[ten_deities[ming.me].inverse[zhi_huis[item]]])
 
-print("湿度分数", temps_scores,"正为暖燥，负为寒湿，正常区间[-6,6] 拱：",  get_gong(zhis), "\033[0m")
+print("湿度分数", temps_scores,"正为暖燥，负为寒湿，正常区间[-6,6] 拱：",  get_gong(ming.zhis,ming.gans), "\033[0m")
 for item in gan_scores:  
     print("{}[{}]-{} ".format(
-        item, ten_deities[me][item], gan_scores[item]),  end='  ')    
+        item, ten_deities[ming.me][item], gan_scores[item]),  end='  ')    
 print()
 print("-"*120)
-yinyangs(zhis)
+yinyangs(ming.zhis)
 shen_zhus = list(zip(gan_shens, zhi_shens))
 
-minggong = Zhi[::-1][(Zhi.index(zhis[1]) + Zhi.index(zhis[3]) -6  )%12 ]
+minggong = Zhi[::-1][(Zhi.index(ming.zhis[1]) + Zhi.index(ming.zhis[3]) -6  )%12 ]
 print(minggong, minggongs[minggong])
-print("坐：", rizhus[me+zhis.day])
+print("坐：", rizhus[ming.me+ming.zhis.day])
 
 
 
 # 地网
-if '辰' in zhis and '巳' in zhis:
+if '辰' in ming.zhis and '巳' in ming.zhis:
     print("地网：地支辰巳。天罗：戌亥。天罗地网全凶。")
     
 # 天罗
-if '戌' in zhis and '亥' in zhis:
+if '戌' in ming.zhis and '亥' in ming.zhis:
     print("天罗：戌亥。地网：地支辰巳。天罗地网全凶。")
 
 # 魁罡格
-if zhus[2] in (('庚','辰'), ('庚','戌'),('壬','辰'), ('戊','戌'),):
+if ming.zhus[2] in (('庚','辰'), ('庚','戌'),('壬','辰'), ('戊','戌'),):
     print("魁罡格：基础96，日主庚辰,庚戌,壬辰, 戊戌，重叠方有力。日主强，无刑冲佳。")
     print("魁罡四柱曰多同，贵气朝来在此中，日主独逢冲克重，财官显露祸无穷。魁罡重叠是贵人，天元健旺喜临身，财官一见生灾祸，刑煞俱全定苦辛。")
 
 # 金神格
-if zhus[3] in (('乙','丑'), ('己','巳'),('癸','酉')):
+if ming.zhus[3] in (('乙','丑'), ('己','巳'),('癸','酉')):
     print("金神格：基础97，时柱乙丑、己巳、癸酉。只有甲和己日，甲日为主，甲子、甲辰最突出。月支通金火2局为佳命。不通可以选其他格")
     
 # 六阴朝阳
-if me == '辛' and zhis.time == '子':
+if ming.me == '辛' and ming.zhis.time == '子':
     print("六阴朝阳格：基础98，辛日时辰为子。")
     
 # 六乙鼠贵
-if me == '乙' and zhis.time == '子':
+if ming.me == '乙' and ming.zhis.time == '子':
     print("六阴朝阳格：基础99，乙日时辰为子。忌讳午冲，丑合，不适合有2个子。月支最好通木局，水也可以，不适合金火。申酉大运有凶，午也不行。夏季为伤官。入其他格以格局论。")
 
 # 从格
@@ -661,30 +498,30 @@ if max(scores.values()) > 25:
     
     
 if zhi_6he[3]:
-    if abs(Gan.index(gans[3]) - Gan.index(gans[2])) == 1:
+    if abs(Gan.index(ming.gans[3]) - Gan.index(ming.gans[2])) == 1:
         print("日时干邻支合：连珠得合：妻贤子佳，与事业无关。母法总则P21-11")
         
-for i,item in enumerate(zhis):
+for i,item in enumerate(ming.zhis):
     if item == me_ku:
         if gan_shens[i] in ('才','财'):
             print("财坐劫库，大破败。母法P61-4 戊寅 丙辰 壬辰 庚子")
             
-#print(zhi_6chong[3], gans, me)
-if zhi_6chong[3] and  gans[3] == me:
+#print(zhi_6chong[3], ming.gans, me)
+if zhi_6chong[3] and  ming.gans[3] == me:
     print("日时天比地冲：女为家庭辛劳，男艺术宗教。 母法P61-5 己丑 丙寅 甲辰 甲戌")
     
-#print(zhi_6chong[3], gans, me)
-if zhi_xing[3] and  gan_ke(me, gans[3]):
+#print(zhi_6chong[3], ming.gans, me)
+if zhi_xing[3] and  gan_ke(ming.me, ming.gans[3]):
     print("日时天克地刑：破败祖业、自立发展、后无终局。 母法P61-7 己丑 丙寅 甲午 庚午") 
     
-if (cai,yin_lu) in zhus and (cai not in zhi_shens2):
+if (cai,yin_lu) in ming.zhus and (cai not in zhi_shens2):
     print("浮财坐印禄:破祖之后，自己也败。 母法P78-29 辛丑 丁酉 壬寅 庚子") 
     
     
 for i in range(3):
-    if is_yang():
+    if is_yang(ming.me):
         break
-    if zhi_xing[i] and zhi_xing[i+1] and gan_ke(gans[i], gans[i+1]):
+    if zhi_xing[i] and zhi_xing[i+1] and gan_ke(ming.gans[i], ming.gans[i+1]):
         print("阴日主天克地刑：孤独、双妻。 母法P61-7 己丑 丙寅 甲午 庚午") 
 
 
@@ -720,21 +557,21 @@ if zhi_shens[1] == '比':
         
 # 甲分析 
 
-if me == '甲':
-    if zhis.count('辰') > 1 or zhis.count('戌') > 1:
+if ming.me == '甲':
+    if ming.zhis.count('辰') > 1 or ming.zhis.count('戌') > 1:
         print("甲日：辰或戌多、性能急躁不能忍。")
-    if zhis[2] == '子':
+    if ming.zhis[2] == '子':
         print("甲子：调候要火。")
-    if zhis[2] == '寅':
+    if ming.zhis[2] == '寅':
         print("甲寅：有主见之人，需要财官旺支。")        
-    if zhis[2] == '辰':
+    if ming.zhis[2] == '辰':
         print("甲辰：印库、性柔和而有实权。")   
-    if zhis[2] == '午':
+    if ming.zhis[2] == '午':
         print("甲午：一生有财、调候要水。")        
-    if zhis[2] == '戌':
+    if ming.zhis[2] == '戌':
         print("甲戌：自坐伤官，不易生财，为人仁善。")      
         
-if me in ('庚', '辛') and zhis[1] == '子' and zhis.count('子') >1:
+if ming.me in ('庚', '辛') and ming.zhis[1] == '子' and ming.zhis.count('子') >1:
     print("冬金子月，再有一子字，孤克。 母法P28-106 甲戌 丙子 庚子 丁丑")  
     
 
@@ -805,14 +642,14 @@ if '比' in gan_shens:
     for seq, gan_ in enumerate(gan_shens):
         if gan_ != '比':
             continue
-        if zhis[seq] in  empties[zhus[2]]:
+        if ming.zhis[seq] in  empties[zhus[2]]:
             print("基51:比肩坐空亡，不利父亲与妻。年不利父，月不利父和妻，在时则没有关系。甲戌 丙寅 甲子 己巳\n\t基52女：夫妻缘分偏薄，在年只是不利父，在月30岁以前夫妻缘薄 E")
         if zhi_shens[seq] == '比':
             print("比坐比-平吉：与官杀对立，无主权。养子：克偏财，泄正印。吉：为朋友尽力；凶：受兄弟朋友拖累。父缘分薄，自我孤僻，男多迟婚")   
         if zhi_shens[seq] == '劫':
             print("女比肩坐劫:夫妻互恨，基52丁丑 壬子 壬戌 壬寅。\n\t还有刑冲且为羊刃，女恐有不测之灾：比如车祸、开刀和意外等。基52丙午 庚子 丙戌 丙申")     
             print("比坐劫-大凶：为忌亲友受损，合作事业中途解散，与妻子不合。如年月3见比，父缘薄或已死别。")   
-            if ten_deities[gans[seq]][zhis[seq]] == '绝' and seq < 2:
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '绝' and seq < 2:
                 print("比肩坐绝，兄弟不多，或者很难谋面。戊己和壬癸的准确率偏低些。")   
         if zhi_shens[seq] == '财':
             print("比肩坐财：因亲人、人情等原因引起无谓损失。")  
@@ -820,7 +657,7 @@ if '比' in gan_shens:
             print("比肩坐杀:稳重。")    
         if zhi_shens[seq] == '枭':
             print("比肩坐偏印：三五年发达，后面守成。")    
-        if zhi_shens[seq] == '劫' and Gan.index(me) % 2 == 0:
+        if zhi_shens[seq] == '劫' and Gan.index(ming.me) % 2 == 0:
             print("比肩坐阳刃：父亲先亡，基于在哪柱判断时间。基51：丙午 丙申 丙申 丁酉。E在年不利父，在其他有刀伤、车祸、意外灾害。\t基52女命年克父亲，月若30岁以前结婚不利婚姻")    
         if zhi_shens[seq] in ('劫','比') and'劫' in gan_shens:
             print("天干比劫并立，比肩又坐比劫，女多遇争夫，个性强，不易协调。")   
@@ -845,16 +682,16 @@ if shens.count('比') + shens.count('劫') > 1:
     
 
 # 日坐禄   
-if me_lu == zhis[2]:
+if me_lu == ming.zhis[2]:
     
-    if zhis.count(me_lu) > 1:
-        if yin_lu in zhis:
+    if ming.zhis.count(ming.me_lu) > 1:
+        if yin_lu in ming.zhis:
             if '比' in gan_shens or '劫' in gan_shens:
                 
                 print("双禄带比印（专旺）、孤克之命。比论孤，劫论凶。母法总则P20-3。比禄印劫不可合见四位")
                 
     if zhi_6he[2] and '比' in gan_shens:
-        if yin_lu in zhis:   
+        if yin_lu in ming.zhis:   
             print("透比，坐禄六合，有印专旺：官非、残疾。六合近似劫财，如地支会印，法死。 母法总则P20-4")
           
         print("透比，坐禄六合，如地支会印，法死。 母法总则P20-4")    
@@ -864,36 +701,36 @@ if me_lu == zhis[2]:
           
         print("日禄与正财干合支刑：克妻子，即便是吉命，也无天伦之乐。 母法总则P22-21")    
         
-if zhis.count(me_lu) > 2:
+if ming.zhis.count(me_lu) > 2:
     print("禄有三，孤。 母法总则P23-36")
     
     
-if zhis[3] == me_ku:
+if ming.zhis[3] == me_ku:
     if '财' in gan_shens or '才' in gan_shens:
         print("时支日库，透财：清高、艺术九流。 母法总则P59-5 己未 辛未 丁巳 庚戌 P61-8 丁未 壬寅 癸卯 丙辰")
         
-    if piancai_lu == zhis[2]:
+    if piancai_lu == ming.zhis[2]:
         print("时支日库，坐偏财：吉祥近贵，但亲属淡薄。 母法总则P59-6 辛未 辛卯 丁酉 庚戌")
     
 
 
     
 # 时坐禄   
-if me_lu == zhis[3]:
+if me_lu == ming.zhis[3]:
     if '伤' in gan_shens and '伤' in zhi_shens2:   
         print("时禄，伤官格，晚年吉。 母法总则P56-26 己未 丙寅 乙丑 己卯")
     if '杀' == gan_shens[3]:   
         print("杀坐时禄：为人反复不定。 母法总则P56-28 己未 丙寅 乙丑 己卯")
     
 # 自坐劫库
-if  zhis[2] == me_ku: 
+if  ming.zhis[2] == me_ku: 
     if gan_shens[3] == '杀' and '杀' in zhi_shen3[3]:
         print("自坐劫库,时杀格，贵！母法总则P30-143 辛未 辛卯 壬辰 戊申 母法总则P55-14 P60-22")  
         
     if gan_shens[3] == '官' and '官' in zhi_shen3[3]:
         print("自坐劫库,正官格，孤贵！母法总则P56-24 辛未 辛卯 壬辰 戊申 母法总则P55-14")   
             
-    if zhi_ku(zhis[3], (cai,piancai)):
+    if zhi_ku(ming.zhis[3], (cai,piancai)):
         print("自坐劫库,时财库，另有刃禄孤刑艺术，无者辛劳！母法总则P30-149 母法总则P56-17 56-18") 
         
     if gan_shens[3] == '财' and '财' in zhi_shen3[3]:
@@ -915,7 +752,7 @@ if '劫' in gan_shens:
     if gan_shens[1] == '劫':
         if  '劫' in zhi_shen3[1]:
             print("月柱干支劫：与父亲无缘，30岁以前任性，早婚防分手，自我精神压力极其重。")
-        if  zhis[1] == cai_lu and zhis.count(yin_lu) > 1:
+        if  ming.zhis[1] == cai_lu and ming.zhis.count(yin_lu) > 1:
             print("月干劫：月支财禄，如地支2旺印，旺财不敌，官非、刑名意外。")            
           
         
@@ -924,7 +761,7 @@ if '劫' in gan_shens:
     if zhi_shens[2] == '劫':
         print("日坐劫财，透天干。在年父早亡，在月夫妻关系不好。比如财产互相防范；鄙视对方；自己决定，哪怕对方不同意；老夫少妻；身世有差距；斤斤计较；敢爱敢恨的后遗症\n\t以上多针对女。男的一般有双妻。天干有杀或食可解。基54丁未 己酉 丙午 己丑") 
             
-if zhus[2] in (('壬','子'),('丙','午'), ('戊','午')):
+if ming.zhus[2] in (('壬','子'),('丙','午'), ('戊','午')):
     print("日主专位劫财，壬子和丙午，晚婚。不透天干，一般是眼光高、独立性强。对配偶不利，互相轻视；若刑冲，做事立场不明遭嫉妒，但不会有大灾。女性婚后通常还有自己的事业,能办事。") 
 if ('劫','伤') in shen_zhus or ('伤','劫',) in shen_zhus:
         print("同一柱中，劫财、阳刃伤官都有，外表华美，富屋穷人，婚姻不稳定，富而不久；年柱不利家长，月柱不利婚姻，时柱不利子女。伤官的狂妄。基55丙申 丁酉 甲子 丁卯")      
@@ -939,7 +776,7 @@ if '劫' in (gan_shens[3],zhi_shens[3]):
 if zhi_shens[2] == '劫':
     print("日支劫：男的克妻，一说是家庭有纠纷，对外尚无重大损失。如再透月或时天干，有严重内忧外患。")
     
-if '劫' in shens2 and  '比' in zhi_shens and '印' in shens2 and not_yang():
+if '劫' in shens2 and  '比' in zhi_shens and '印' in shens2 and not_yang(ming.me):
     print("阴干比劫印齐全，单身，可入道！")
     
 if zhi_shens[0] == '劫' and is_yang(): 
@@ -956,7 +793,7 @@ if zhi_shens[1] == '劫' and is_yang():
     else:
         print("阳刃'甲', '丙',忌讳杀运，正财偏财财库运还好。甲：乙卯凶，辛卯吉；甲申与丁卯暗合吉。丙：丙午凶，壬午吉。丙子和壬午换禄不凶。")
         
-    if zhis.count(yin_lu) > 0 and gan_shens[1] == '劫': # 母法总则P20-1
+    if ming.zhis.count(yin_lu) > 0 and gan_shens[1] == '劫': # 母法总则P20-1
         print("阳刃格月干为劫：如果印禄位有2个，过旺，凶灾。不透劫财，有一印禄,食伤泄，仍然可以吉。 母法总则P20-1")
         
     if gan_shens[3] == '枭' and '枭' in zhi_shen3[3]:
@@ -964,35 +801,35 @@ if zhi_shens[1] == '劫' and is_yang():
         print("阳刃格:时柱成偏印格，贫、夭、带疾。 母法总则P28-107 癸未 辛酉 庚寅 戊寅")
                 
         
-if zhi_shens.count('劫') > 1 and Gan.index(me) % 2 == 0:
-    if zhis.day == yin_lu:
+if zhi_shens.count('劫') > 1 and Gan.index(ming.me) % 2 == 0:
+    if ming.zhis.day == yin_lu:
         print("双阳刃，自坐印专位：刑妻、妨子。凶终、官非、意外灾害。母法总则P21-13")
         
-if zhi_shens[1:].count('劫') > 0 and Gan.index(me) % 2 == 0:
-    if zhis.day == yin_lu and ('劫' in gan_shens or '比' in gan_shens):
+if zhi_shens[1:].count('劫') > 0 and Gan.index(ming.me) % 2 == 0:
+    if ming.zhis.day == yin_lu and ('劫' in gan_shens or '比' in gan_shens):
         print("阳刃，自坐印专位，透比或劫：刑妻。母法总则P36-8 己酉 丁卯 甲子 乙亥")
         
-if zhis[2] in (me_lu,me_di) and zhis[3] in (me_lu,me_di):
+if ming.zhis[2] in (me_lu,me_di) and ming.zhis[3] in (me_lu,me_di):
     print("日时禄刃全，如没有官杀制，刑伤父母，妨碍妻子。母法总则P30-151 丁酉 癸卯 壬子 辛亥 母法总则P31-153 ")
     
 #print(gan_shens)
 for seq, gan_ in enumerate(gan_shens):
     if gan_ != '劫':
         continue    
-    if zhis[seq] in (cai_lu, piancai_lu):
+    if ming.zhis[seq] in (cai_lu, piancai_lu):
         print("劫财坐财禄，如逢冲，大凶。先冲后合和稍缓解！母法总则P21-7 书上实例不准！")
         
         if zhi_shens[seq] == '财' and zhi_6he[seq]:
             print("劫财坐六合财支：久疾暗病！母法总则P28-113 乙未 丙戌 辛亥 庚寅！")
 
-if gan_shens[1] == '劫' and zhis[1] in (cai_lu, piancai_lu)  and zhis.count(yin_lu) > 1 and '劫' in gan_shens:
+if gan_shens[1] == '劫' and ming.zhis[1] in (cai_lu, piancai_lu)  and ming.zhis.count(yin_lu) > 1 and '劫' in gan_shens:
     print("月干劫坐财禄，有2印禄，劫透，财旺也败：官非、刑名、意外灾害！  母法总则P20-2")
     
 # 自坐阳刃
-if '劫' in zhi_shen3[2] and is_yang() and zhis[2] in zhengs:  
-    if zhis[3] in (cai_lu, piancai_lu):
+if '劫' in zhi_shen3[2] and is_yang() and ming.zhis[2] in zhengs:  
+    if ming.zhis[3] in (cai_lu, piancai_lu):
         print("坐阳刃,时支财禄，吉祥但是妻子性格不受管制！母法总则P30-137 丁未 庚戌 壬子 乙巳")
-    if zhi_ku(zhis[3], (cai, piancai)):
+    if zhi_ku(ming.zhis[3], (cai, piancai)):
         print("坐阳刃,时支财库，名利时进时退！母法总则P30-148 丙寅 壬寅 壬子 庚戌")
             
     if gan_shens[3] == '杀' and '杀' in zhi_shen3[3]:
@@ -1036,7 +873,7 @@ for seq, zhi_ in enumerate(zhi_shens):
     if zhi_ != '枭' and gan_shens[seq] != '枭':
         continue   
 
-    if ten_deities[gans[seq]][zhis[seq]] == '绝':
+    if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '绝':
         print("偏印坐绝，或者天干坐偏印为绝，难以得志。费力不讨好。基56辛酉 辛卯 丁巳 甲辰  丁卯 丁未 己丑 丁卯")    
 
     if  gan_shens[seq] == '枭':
@@ -1057,32 +894,32 @@ if '枭' in (gan_shens[0],zhi_shens[0]):
     print("偏印在年：少有富贵家庭；有宗教素养，不喜享乐，第六感强。")
 if '枭' in (gan_shens[1],zhi_shens[1]):
     print("偏印在月：有慧少福，能舍己为人。")
-    if zhi_shens[1]  == '枭' and zhis[1] in "子午卯酉":
+    if zhi_shens[1]  == '枭' and ming.zhis[1] in "子午卯酉":
         print("偏印专位在月支：比较适合音乐，艺术，宗教等。子午卯酉。22-30之间职业定型。基56：壬午 癸卯 丁丑 丁未")
         if gan_shens[1] == '枭':
             print("干支偏印月柱，专位入格，有慧福浅，不争名利。基57:戊子 辛酉 癸未 丁巳")    
 if '枭' in (gan_shens[3],zhi_shens[3]):
     print("偏印在时：女与后代分居；男50以前奠定基础，晚年享清福。")     
-if zhi_shens[2] == '枭' or zhis.day == xiao_lu:
+if zhi_shens[2] == '枭' or ming.zhis.day == xiao_lu:
     print("偏印在日支：家庭生活沉闷")
     if zhi_6chong[2] or zhi_xing[2]:
         print("偏印在日支(专位？),有冲刑：孤独。基57：甲午 癸酉 丁卯 丁未 母法总则P55-5： 辛丑 辛卯 癸酉 戊午 P77-13")
     if zhus[2] in (('丁','卯'),('癸','酉')):
         print("日专坐偏印：丁卯和癸酉。婚姻不顺。又刑冲，因性格而起争端而意外伤害。 基56")   
-    if zhis[3] == me_jue:
+    if ming.zhis[3] == me_jue:
         print("日坐偏印，日支绝：无亲人依靠，贫乏。 母法总则P55-5：丙辰 丙申 丁卯 壬子。pd41 专位偏印：男女姻缘都不佳。")  
     
-    if '枭' in gan_shens and is_yang() and zhis.time == me_di:
+    if '枭' in gan_shens and is_yang() and ming.zhis.time == me_di:
         
         print("日坐偏印成格，时支阳刃：不利妻子，自身有疾病。 母法总则P55-6：甲子 甲戌 丙寅 甲午")  
     if gan_shens[3] == zhi_shens[3] == '劫':
         print("日坐偏印，时干支劫：因自己性格而引灾。 母法总则P57-34：甲子 甲戌 丙寅 甲午")
         
-    if zhis.count(me_di) > 1 and is_yang():
+    if ming.zhis.count(ming.me_di) > 1 and is_yang():
         print("日坐偏印，地支双阳刃：性格有极端倾向。 母法总则P57-35：甲申 庚午 丙寅 甲午")
 
         
-if zhis.time == xiao_lu:
+if ming.zhis.time == xiao_lu:
     if zhi_shens[3] == '枭' and '枭' in gan_shens:
         if '财' in shens2 or '才' in shens2:
             print("时支偏印成格有财：因机智引凶。 母法总则P60-18：甲申 乙亥 丁亥 癸卯")        
@@ -1107,7 +944,7 @@ if '印' in gan_shens:
     for seq, gan_ in enumerate(gan_shens):
         if gan_ != '印':
             continue   
-        if ten_deities[gans[seq]][zhis[seq]] in ('绝', '死'):
+        if ten_deities[ming.gans[seq]][ming.zhis[seq]] in ('绝', '死'):
             if seq <3:
                 print("正印坐死绝，或天干正印地支有冲刑，不利母亲。时柱不算。")   
         if zhi_shens[seq] == '财':
@@ -1115,7 +952,7 @@ if '印' in gan_shens:
         if zhi_shens[seq] == '印':
             print("正印坐正印，专位，过于自信。基59：戊辰 乙卯 丙申 丙申。务实，拿得起放得下。女的话大多晚婚。母长寿；女子息迟，头胎恐流产。女四柱没有官杀，没有良缘。男的搞艺术比较好，经商则孤僻，不聚财。")          
 
-        if zhi_shens[seq] == '枭' and len(zhi5[zhis[seq]]) == 1:
+        if zhi_shens[seq] == '枭' and len(zhi5[ming.zhis[seq]]) == 1:
             print("正印坐偏印专位：基59壬寅 壬子 乙酉 甲申。有多种职业;家庭不吉：亲人有疾或者特别嗜好。子息迟;财务双关。明一套，暗一套。女的双重性格。")   
             
         if zhi_shens[seq] == '伤':
@@ -1151,11 +988,11 @@ if zhi_shens[2]  == '印':
     if gan_shens[3] == '才' and '才' in zhi_shen3[3]:
         print("坐印，时偏财格：他乡发迹，改弦易宗，妻贤子孝。 母法总则：P55-1 丁丑 丁未 甲子 戊辰") 
         
-    if gan_shens[3] == '财' and ('财' in zhi_shen3[3] or zhis[3] in (cai_di, cai_lu)):
+    if gan_shens[3] == '财' and ('财' in zhi_shen3[3] or ming.zhis[3] in (cai_di, cai_lu)):
         print("坐印，时财正格：晚年发达，妻贤子不孝。 母法总则：P55-2 乙酉 丙申 甲子 己巳") 
 
             
-if zhi_shens[3]  == '印' and zhis[3] in zhengs:
+if zhi_shens[3]  == '印' and ming.zhis[3] in zhengs:
     print("时支专位正印。男忙碌到老。女的子女各居一方。亲情淡薄。")  
     
 if gan_shens[3]  == '印' and '印' in zhi_shen3[3]:
@@ -1165,24 +1002,24 @@ if gan_shens.count('印') + gan_shens.count('枭') > 1:
     print("印枭在年干月干，性格迂腐，故作清高，女子息迟，婚姻有阻碍。印枭在时干，不利母子，性格不和谐。")  
     
 
-if zhis[1] in (yin_lu, xiao_lu) :
+if ming.zhis[1] in (yin_lu, xiao_lu) :
     print("印或枭在月支，有压制丈夫的心态。")  
     
-if zhis[3] in (yin_lu, xiao_lu) :
+if ming.zhis[3] in (yin_lu, xiao_lu) :
     print("印或枭在时支，夫灾子寡。")  
  
 # 坐印库   
-if zhi_ku(zhis[2], (yin, xiao)):
+if zhi_ku(ming.zhis[2], (yin, xiao)):
     if shens2.count('印') >2:
         print("母法总则P21-5: 日坐印库，又成印格，意外伤残，凶终。过旺。")
     if zhi_shens[3] == '劫':
         print("自坐印库，时阳刃。带比禄印者贫，不带吉。 母法总则P21-14")  
 
-if zhis.count("印") > 1:
+if ming.zhis.count("印") > 1:
     if gan_shens[1] == "印" and zhi_shens[1] == "印" and '比' in gan_shens:
         print("月干支印，印旺，透比，旺而不久，冲亡。母法总则P21-8") 
         
-if zhis[1] == yin_lu:
+if ming.zhis[1] == yin_lu:
     if ('财' in gan_shens and '财' in zhi_shens) or ('才' in gan_shens and '才' in zhi_shens):
         print("母法总则P22-18 自坐正印专旺，成财格，移他乡易宗，妻贤子孝。") 
         
@@ -1208,15 +1045,15 @@ if '才' in gan_shens:
     for seq, gan_ in enumerate(gan_shens):
         if gan_ != '才':
             pass
-        if '劫' in zhi_shen3[seq] and zhis[seq] in zhengs:
+        if '劫' in zhi_shen3[seq] and ming.zhis[seq] in zhengs:
             print("偏财坐阳刃劫财,可做父缘薄，也可幼年家贫。也可以父先亡，要参考第一大运。偏财坐专位阳刃劫财,父亲去他乡.基61壬午 壬寅 戊子 丁巳")   
-        if get_empty(zhus[2],zhis[seq]) == '空':
+        if get_empty(ming.zhus[2],ming.zhis[seq]) == '空':
             print("偏财坐空亡，财官难求。")                    
                 
 if shens2.count('才') > 2:
     print("偏财多的人慷慨，得失看淡。花钱一般不会后悔。偏乐观，甚至是浮夸。生活习惯颠倒。适应能力强。有团队精神。得女性欢心。小事很少失信。")
     print("乐善好施，有团队精神，女命偏财，听父亲的话。时柱偏财女，善于理财，中年以后有事业。")
-if (zhi_shens[2]  == '才' and len(zhi5[zhis[2]]) == 1) or (zhi_shens[3]  == '才' and len(zhi5[zhis[3]]) == 1):
+if (zhi_shens[2]  == '才' and len(zhi5[ming.zhis[2]]) == 1) or (zhi_shens[3]  == '才' and len(zhi5[ming.zhis[3]]) == 1):
     print("日时地支坐专位偏财。不见刑冲，时干不是比劫，大运也没有比劫刑冲，晚年发达。")
     
     
@@ -1251,36 +1088,36 @@ if '财' in gan_shens:
             print("正财多而无根虚而不踏实。重财不富。")
             
 for seq, gan_ in enumerate(gan_shens):
-    if gan_ != '财' and zhis[seq] != '财':
+    if gan_ != '财' and ming.zhis[seq] != '财':
         continue   
-    if zhis[seq] in day_shens['驿马'][zhis.day] and seq != 2:
+    if ming.zhis[seq] in day_shens['驿马'][ming.zhis.day] and seq != 2:
         print("女柱有财+驿马，动力持家。")
-    if zhis[seq] in day_shens['桃花'][zhis.day] and seq != 2:
+    if ming.zhis[seq] in day_shens['桃花'][ming.zhis.day] and seq != 2:
         print("女柱有财+桃花，不吉利。")        
-    if zhis[seq] in empties[zhus[2]]:
+    if ming.zhis[seq] in empties[zhus[2]]:
         print("财坐空亡，不持久。")    
-    if ten_deities[gans[seq]][zhis[seq]] in ('绝', '墓'):
+    if ten_deities[ming.gans[seq]][ming.zhis[seq]] in ('绝', '墓'):
         print("男财坐绝或墓，不利婚姻。")
             
 if shens2.count('财') > 2:
     print("正财多者，为人端正，有信用，简朴稳重。")
-    if '财' in zhi_shens2 and (me not in zhi_shens2):
+    if '财' in zhi_shens2 and (ming.me not in zhi_shens2):
         print("正财多而有根，日主不在生旺库，身弱惧内。")   
         
-if zhi_shens[1] == '财' and options.n:
+if zhi_shens[1] == '财' and ming.is_women:
     print("女命月支正财，有务实的婚姻观。")
     
 if zhi_shens[1] == '财':
     print("月令正财，无冲刑，有贤内助，但是母亲与妻子不和。生活简朴，多为理财人士。")
-if zhi_shens[3] == '财' and len(zhi5[zhis[3]]) == 1:
+if zhi_shens[3] == '财' and len(zhi5[ming.zhis[3]]) == 1:
     print("时支正财，一般两个儿子。")
-if zhus[2] in (('戊','子'),) or zhus[3] in (('戊','子'),):
+if ming.zhus[2] in (('戊','子'),) or ming.zhus[3] in (('戊','子'),):
     print("日支专位正财，得勤俭老婆。即戊子。日时专位支正财，又透正官，中年以后发达，独立富贵。") 
     
-if zhus[2] in (('壬','午'),('癸','巳'),):
+if ming.zhus[2] in (('壬','午'),('癸','巳'),):
     print("坐财官印，只要四柱没有刑冲，大吉！") 
     
-if zhus[2] in (('甲','戌'),('乙','亥'),):
+if ming.zhus[2] in (('甲','戌'),('乙','亥'),):
     print("女('甲','戌'),('乙','亥'） 晚婚 -- 不准！") 
     
 if '财' == gan_shens[3] or  '财' == zhi_shens[3]:
@@ -1291,15 +1128,15 @@ if (not '财' in shens2) and (not '才' in shens2):
     
 
 #print("shang", shang, ten_deities[shang].inverse['建'], zhi_shens)
-#if ten_deities[shang].inverse['建'] in zhis:
+#if ten_deities[shang].inverse['建'] in ming.zhis:
     #print("女命一财得所，红颜失配。")  
     
-if zhis.day in (cai_lu, cai_di):
-    if (zhi_shens[1] == '劫' or zhi_shens[3] == '劫' ) and Gan.index(me) % 2 == 0:
+if ming.zhis.day in (cai_lu, cai_di):
+    if (zhi_shens[1] == '劫' or zhi_shens[3] == '劫' ) and Gan.index(ming.me) % 2 == 0:
         print("自坐财禄，月支或时支为阳刃，凶。无冲是非多，冲刑主病灾。 母法总则P22-15  母法总则P36-4 丙寅 戊戌 甲午 丁卯 P56-32 己未 丙寅 丙申 甲午")   
-    if ('劫' in zhi_shens ) and Gan.index(me) % 2 == 0 and '劫' in gan_shens :
+    if ('劫' in zhi_shens ) and Gan.index(ming.me) % 2 == 0 and '劫' in gan_shens :
         print("自坐财禄，透劫财，有阳刃，刑妻无结局。 母法总则P36-7 戊子 乙卯 甲午 乙亥") 
-    if me in ('甲', '乙') and ('戊' in gans or '己' in gans):
+    if me in ('甲', '乙') and ('戊' in ming.gans or '己' in ming.gans):
         print("火土代用财，如果透财，多成多败，早年灰心。 母法总则P22-19 辛未 癸巳 甲午 戊辰") 
         
     if gan_shens[3] == '枭':
@@ -1307,31 +1144,31 @@ if zhis.day in (cai_lu, cai_di):
         if '枭' in zhi_shen3[3]:
             print("财禄时干偏印格：财虽吉、人丁孤单、性格艺术化 母法总则P56-20 己巳 丙辰 甲午 壬申")
             
-    if zhis[3] == yin_lu:
+    if ming.zhis[3] == yin_lu:
         print("坐财禄，时支印禄：先难后易 母法总则P30-147 甲申 己巳 壬午 己酉 母法总则P55-16")
                   
      
-if (gan_he[3] and gan_shens[3] == '财' and jin_jiao(zhis[2], zhis[3]) ) or (gan_he[2] and gan_he[1] and gan_shens[1] == '财' and jin_jiao(zhis[1], zhis[2])):
+if (gan_he[3] and gan_shens[3] == '财' and jin_jiao(ming.zhis[2], ming.zhis[3]) ) or (gan_he[2] and gan_he[1] and gan_shens[1] == '财' and jin_jiao(ming.zhis[1], ming.zhis[2])):
       
     print("日主合财且进角合：一生吉祥、平安有裕！ 母法总则P22-22 丁丑 丙午 甲辰 己巳")    
     
     
-if zhis.day == cai_lu or zhi_shens[2] == '财':
-    if gan_shens[3] == '枭' and ('枭' in zhi_shen3[3] or zhis[3] == xiao_lu ):
+if ming.zhis.day == cai_lu or zhi_shens[2] == '财':
+    if gan_shens[3] == '枭' and ('枭' in zhi_shen3[3] or ming.zhis[3] == xiao_lu ):
         print("日坐财，时偏印格：他乡有成，为人敦厚。母法总则P55-4 甲寅 辛未 甲午 壬申")
     if zhi_6chong[2] or zhi_xing[2]:
         print("日坐财，有冲或刑：财吉而有疾。母法总则P55-10 丙寅 戊戌 甲午 甲子")    
 
         
-if gan_shens[3] == '财' and zhi_ku(zhis[3], (me,jie)):
+if gan_shens[3] == '财' and zhi_ku(ming.zhis[3], (ming.me,jie)):
     print("正财坐日库于时柱:孤独、难为父母，但事业有成。 母法总则P31-156 丁丑 丙午 甲辰 己巳")
 
 # 自坐财库    
-if zhis[2] == cai_ku: 
-    if zhis[3] == me_ku :
+if ming.zhis[2] == cai_ku: 
+    if ming.zhis[3] == me_ku :
         print("自坐财库,时劫库：有财而孤单。 母法总则P30-136 丁丑 丙午 甲辰 己巳 母法总则P55-11 P61-5 甲子 己巳 壬戌 甲辰")
         
-    if zhis[2] == zhis[3]:
+    if ming.zhis[2] == ming.zhis[3]:
         print("自坐财库,时坐财库：妻有灾，妻反被妾制服。 母法总则P30-150 辛酉 乙未 壬戌 庚戌 母法总则P56-19")
     
         
@@ -1339,30 +1176,30 @@ if zhis[2] == cai_ku:
         print("自坐财库,时杀格，财生杀，凶！母法总则P30-147 甲寅 己巳 壬戌 戊申 有可能是时柱有杀就算。 母法总则P55-15")    
     
 # 时坐财库    
-if zhi_ku(zhis[3], (cai,piancai)): 
+if zhi_ku(ming.zhis[3], (cai,piancai)): 
     if '伤' in gan_shens and '伤' in zhi_shens:
         print("时坐财库,伤官生财:财好，体弱，旺处寿倾倒！母法总则P59-8 戊申 辛酉 戊子 丙辰")
 
 if gan_shens[3] == '财' and '财' in zhi_shen3[3]:
     print("时上正财格:不必财旺，因妻致富。 母法总则P30-140 丙午 戊戌 壬寅 丁未 母法总则P60-21") 
     
-    if zhis[3] == me_ku:
+    if ming.zhis[3] == me_ku:
         print("时上正财格坐比劫库，克妻。 母法总则P30-141 丙午 戊戌 壬寅 丁未")
-    if zhis[2] == cai_ku:
+    if ming.zhis[2] == cai_ku:
         print("时上正财格自坐财库，妻佳，中年丧妻，续弦也佳。 母法总则P30-142 庚子 辛巳 壬戌 丁未 P61-7")
 
-#print(cai_di, cai_lu, zhis, gan_he)        
-if zhis[3] in (cai_di, cai_lu):
+#print(cai_di, cai_lu, ming.zhis, gan_he)        
+if ming.zhis[3] in (cai_di, cai_lu):
     if gan_he[3]:
         print("时财禄，天干日时双合，损妻家财。 母法总则P31-157 庚戌 戊寅 癸酉 戊午")
     if '伤' == gan_shens[3] and '伤' in zhi_shens2:
         print("时支正财时干伤成格：虽富有也刑克。 母法总则P59-1 丁丑 壬寅 丁巳 戊申")
-    #print(zhi_ku(zhis[1], (shi,shang)) , (shi,shang), zhis[3] == cai_lu)
-    if zhi_ku(zhis[1], (shi,shang)) and zhis[3] == cai_lu:
+    #print(zhi_ku(ming.zhis[1], (shi,shang)) , (shi,shang), ming.zhis[3] == cai_lu)
+    if zhi_ku(ming.zhis[1], (shi,shang)) and ming.zhis[3] == cai_lu:
         print("时支正财禄，月支伤入墓：生财极为辛勤。 母法总则P59-4 甲子 戊辰 庚戌 己卯")
         
-# print(cai_di, cai_lu, zhis, gan_he)        
-if zhis[3] == cai_lu:
+# print(cai_di, cai_lu, ming.zhis, gan_he)        
+if ming.zhis[3] == cai_lu:
     if zhi_xing[3] or zhi_6chong[3]:
         print("时支正财禄有冲刑：得女伴且文学清贵。 母法总则P60-11 丁丑 辛亥 己巳 乙亥")
     if any(zhi_xing[:3]) or any(zhi_6chong[:3]):
@@ -1396,7 +1233,7 @@ if '官' in gan_shens:
     if (gan_shens[0] == '官' and gan_shens[1] == '官') or (gan_shens[1] == '官' and '官' in zhi_shen3[1]):
         print("官月重叠：女易离婚，早婚不吉利。为人性格温和。")
             
-    if gan_shens[3] == '官' and len(zhi5[zhis[3]]) == 1:
+    if gan_shens[3] == '官' and len(zhi5[ming.zhis[3]]) == 1:
         print("官专位时坐地支，男有得力子息。")
     if gan_shens[0] == '官' :
         print("年干为官，身强有可能出身书香门第。")
@@ -1414,7 +1251,7 @@ if '官' in gan_shens:
         if '财' in gan_shens and '财' in zhi_shens2:
             print("财官印同根透，无刑冲合，吉。")
         
-    if gan_shens[1] == '官' in ten_deities[me][zhis[1]] in ('绝', '墓'):
+    if gan_shens[1] == '官' in ten_deities[ming.me][ming.zhis[1]] in ('绝', '墓'):
         print("官在月坐墓绝，不是特殊婚姻就是迟婚。如果与天月德同柱，依然不错。丈夫在库中：1，老夫少妻；2，不为外人所知的亲密感情；3，特殊又合法的婚姻。")
     if zhi_shens[1] == '官' and gan_shens[1] == '官':
         print("月柱正官坐正官，婚变。月柱不宜通。坐禄的。")  
@@ -1427,7 +1264,7 @@ if '官' in gan_shens:
             print("天干正官，地支比肩或劫财，亲友之间不适合合作，但是他适合经营烂摊子。")
         if zhi_shens[seq] == '杀' :
             print("正官坐七杀，男命恐有诉讼之灾。女命婚姻不佳。月柱尤其麻烦，二度有感情纠纷。年不算，时从轻。 基64 壬子 壬子 丁丑 癸卯")
-        if zhi_shens[seq] == '劫' and Gan.index(me) % 2 == 0:
+        if zhi_shens[seq] == '劫' and Gan.index(ming.me) % 2 == 0:
             print("官坐羊刃：要杀才能制服阳刃，有力不从心之事情。 辛卯 丁酉 庚午 庚辰 基65")   
         if zhi_shens[seq] == '印':
             print("官坐印，无刑冲合，吉")   
@@ -1435,9 +1272,9 @@ if '官' in gan_shens:
             
 if shens2.count('官') > 2 and '官' in gan_shens and '官' in zhi_shens2:
     print("正官多者，虚名。为人性格温和，比较实在。做七杀看")
-if zhis.day == guan_lu or zhi_shens[2] == '官':
+if ming.zhis.day == guan_lu or zhi_shens[2] == '官':
     print("日坐正官专位，淑女。 基65 庚申 癸未 丙子 乙未")
-    if is_yang() and zhis.time == me_di:
+    if is_yang() and ming.zhis.time == me_di:
         print("日坐正官，时支阳刃：先富后败，再东山再起。 子平母法 P55-7")
     
 if gan_shens.count('官') > 2 :
@@ -1495,8 +1332,8 @@ if '杀' in gan_shens:
         print("身弱杀生印，不少是精明练达的商人。")  
     if '财' in gan_shens or '才' in gan_shens:
         print("财生杀，如果不是身弱有印，不佳。")  
-        for zhi_ in zhis: 
-            if set((ten_deities[me].inverse['杀'], ten_deities[me].inverse['财'])) in set(zhi5[zhi_]):
+        for zhi_ in ming.zhis: 
+            if set((ten_deities[ming.me].inverse['杀'], ten_deities[ming.me].inverse['财'])) in set(zhi5[zhi_]):
                 print("杀不喜与财同根透出，这样杀的力量太强。")  
 
 
@@ -1505,9 +1342,9 @@ for seq, gan_ in enumerate(gan_shens):
         continue   
     if gan_ == '杀' and '杀' in zhi_shen3[seq] and seq != 3:
         print("七杀坐七杀，六亲福薄。")
-    if get_empty(zhus[2],zhis[seq]) == '空':
+    if get_empty(ming.zhus[2],ming.zhis[seq]) == '空':
         print("七杀坐空亡，女命夫缘薄。 基68 壬申 庚戌 甲子 丙寅")
-    if zhis[seq] == '食':
+    if ming.zhis[seq] == '食':
         print("七杀坐食：易有错误判断。")
     if zhi_xing[seq] or zhi_6chong[seq]:
         print("七杀坐刑或对冲，夫妻不和。")
@@ -1515,84 +1352,84 @@ for seq, gan_ in enumerate(gan_shens):
             
 if shens2.count('杀') > 2:
     print("杀多者如果无制，性格刚强。打抱不平，不易听人劝。女的喜欢佩服的人。")
-if zhi_shens[2]  == '杀' and len(zhi5[zhis[2]]) == 1:
+if zhi_shens[2]  == '杀' and len(zhi5[ming.zhis[2]]) == 1:
     print("天元坐杀：乙酉，己卯，如无食神，阳刃，性急，聪明，对人不信任。如果七杀还透出月干无制，体弱多病，甚至夭折。如果在时干，晚年不好。")
     
-if zhus[2] in (('丁', '卯'), ('丁', '亥'), ('丁', '未')) and zhis.time == '子':
+if ming.zhus[2] in (('丁', '卯'), ('丁', '亥'), ('丁', '未')) and ming.zhis.time == '子':
     print("七杀坐桃花，如有刑冲，引感情引祸。忌讳午运。")
     
 if gan_shens.count('杀') > 2 :
     print("天干2杀，不是老大、性格浮躁不持久。")   
 
-if ten_deities[shang].inverse['建'] in zhis and options.n:
+if ten_deities[shang].inverse['建'] in ming.zhis and ming.is_women:
     print("女地支有杀的禄：丈夫条件还可以。对外性格急，对丈夫还算顺从。")  
     
     
     
-if zhis[2] == me_jue:
+if ming.zhis[2] == me_jue:
     print("#"*10, "自坐绝")
     if zhi_6he[2]:
         
         print("自己坐绝（天元坐杀）：日支与它支合化、双妻，子息迟。母法总则P21-9 P56-30 d第10点暂未编码。") 
         
     print("自己坐绝支，绝支合会，先贫后富。母法总则P57-3 母法总则P23-33")  
-    if zhis[3] == zhis[2]:
+    if ming.zhis[3] == ming.zhis[2]:
         print("日主日时绝，旺达则有刑灾。母法总则P57-2 母法总则P24-43 戊午 癸亥 乙酉 乙酉")  
         
-    if zhis[3] == zhis[2] == zhis[1]:
+    if ming.zhis[3] == ming.zhis[2] == ming.zhis[1]:
         print("日主月日时绝，旺达则有刑灾，平常人不要紧。母法总则P57-1")  
     if zhi_shens.count('比') + zhi_shens.count('劫') > 1 :
         print("自坐绝，地支比劫大于1，旺衰巨变，凶：母法总则P22-16。 母法总则P36-5月支或时支都为阳刃，凶。")
     
-    if zhis[1] == me_jue:
+    if ming.zhis[1] == me_jue:
         print("日主月日绝，有格也疾病夭。母法总则P23-35")  
         
-    if zhis[3] == cai_lu:
+    if ming.zhis[3] == cai_lu:
         print(" 母法总则P59-2  自坐绝，月支财禄:身弱财旺有衰困时，克妻子。书上例子不对")   
         
-    if zhis[3] == cai_di:
+    if ming.zhis[3] == cai_di:
         print(" 母法总则P59-3  自坐绝，月支偏财禄:有困顿时娶背景不佳妻。书上例子不对")   
 
 
 
         
-if zhis[3] == me_jue:
+if ming.zhis[3] == me_jue:
     print("#"*10, "自己时坐绝: 母法总则P57-4: 若成伤官格，难求功名，适合艺术九流。")
     if zhi_shens[2] == '枭':
         print("母法总则P57-5: 自时支坐绝，自坐枭: 不是生意人，清贫艺术九流人士。")
     #print(zhi_shens, cai_di, cai_lu)
-    if zhis[1] in (cai_di, cai_lu):
+    if ming.zhis[1] in (cai_di, cai_lu):
         print(" 母法总则P57-6  自时支坐绝，月支坐财:先富，晚年大败，刑破。 癸未 庚申 丁巳 庚子")    
 
-    if zhis[1] in (me_lu, me_di):
+    if ming.zhis[1] in (ming.me_lu, me_di):
         print(" 母法总则P28-114  自时支坐绝，月支帝:刑妻克子。 甲子 癸酉 辛丑 辛卯 -- 阴干也算阳刃？")   
         
-    if zhis[3] in (cai_di,cai_lu):
+    if ming.zhis[3] in (cai_di,cai_lu):
         print(" 母法总则P57-8  自时支坐绝，时支财:中年发后无作为。 甲子 癸酉 辛丑 辛卯")   
         
 
-if zhis[2] == sha_lu:
-    if zhi_ku(zhis[3], (guan, sha)):
+if ming.zhis[2] == sha_lu:
+    if zhi_ku(ming.zhis[3], (guan, sha)):
         print("自坐杀禄，时支为官杀库，一生有疾，生计平常。 母法总则P21-12 母法总则P55-8 甲子 丙寅 乙酉 己丑 P56-31")    
         
-if zhis[3] == sha_lu:
+if ming.zhis[3] == sha_lu:
     if zhi_xing[3] or zhi_6chong[3]:
         
         print("时支杀禄带刑冲：纵然吉命也带疾不永寿。 母法总则P60-15 乙未 乙酉 戊申 甲寅")  
 
-if gan_shens[3] == '杀' and zhis[3] in (cai_di, cai_lu):
+if gan_shens[3] == '杀' and ming.zhis[3] in (cai_di, cai_lu):
     print("七杀时柱坐财禄旺：性格严肃。 母法总则P59-7 母法总则P79-3 双妻，子息迟。 ")  
 
 #print(sha_lu, zhi_6chong,zhi_xing )    
-if zhis[3] == sha_lu:
+if ming.zhis[3] == sha_lu:
     if (zhi_6chong[3] or zhi_xing[3]):
         print("七杀时禄旺：遇刑冲寿夭带疾。 母法总则P28-118 冲别的柱也算？ 乙未 戊寅 辛丑 甲午 ") 
-    if zhis[1] == sha_lu:
+    if ming.zhis[1] == sha_lu:
         print("七杀时月禄旺：体疾。 母法总则P28-119 甲寅 庚午 辛丑 甲午  母法总则P60-16")
  
-#print(zhi_ku(zhis[2], (guan,sha)),set(zhis), set('辰戌丑未'))      
-if zhi_ku(zhis[2], (guan,sha)):
-    if set(zhis).issubset(set('辰戌丑未')):
+#print(zhi_ku(ming.zhis[2], (guan,sha)),set(ming.zhis), set('辰戌丑未'))      
+if zhi_ku(ming.zhis[2], (guan,sha)):
+    if set(ming.zhis).issubset(set('辰戌丑未')):
         print("自坐七杀入墓：地支都为库，孤独艺术。 母法总则P57-33  丙辰 戊戌 乙丑 庚辰") 
         
 if '杀' in gan_shens and zhi_shens.count('杀') > 1:
@@ -1659,7 +1496,7 @@ if ('杀', '食') in shen_zhus or ( '食', '杀') in shen_zhus:
 if ('枭', '食') in shen_zhus or ( '食', '枭') in shen_zhus:
     print("女命最怕食神偏印同一柱。不利后代，时柱尤其重要。基69庚午 己卯 丁未 丁未")
     
-if '食' in zhi_shen3[2] and zhis[2] in zhengs:
+if '食' in zhi_shen3[2] and ming.zhis[2] in zhengs:
     print("日支食神专位容易发胖，有福。只有2日：癸卯，己酉。男命有有助之妻。")
 if zhi_shens[2]  == '食' and zhi_shens[2]  == '杀':
     print("自坐食神，时支杀专，二者不出天干，多成败，最后失局。")  
@@ -1668,31 +1505,31 @@ if zhi_shens[2]  == '食':
     print("自坐食神，相敬相助，即使透枭也无事，不过心思不定，做事毅力不足，也可能假客气。专位容易发胖，有福。")
  
     
-if zhis[2]  == shi_lu:
-    if zhis[3]  == sha_lu and (sha not in gan_shens):
+if ming.zhis[2]  == shi_lu:
+    if ming.zhis[3]  == sha_lu and (sha not in gan_shens):
         print("自坐食，时支专杀不透干：多成败，终局失制。母法总则P56-22 丙子 庚寅 己酉 丁卯")
 
 if '食' in zhi_shen3[3] and '枭' in zhi_shen3[3] + gan_shens[3]:
     print("时支食神逢偏印：体弱，慢性病，女的一婚不到头。")  
     
-if zhis[2] in kus and zhi_shen3[2][2] in ('食', '伤'):
+if ming.zhis[2] in kus and zhi_shen3[2][2] in ('食', '伤'):
     print("自坐食伤库：总觉得钱不够。")
     
 if  '食' in (gan_shens[0], zhi_shens[0]):
     print("年柱食：可三代同堂。")
 
-if zhi_ku(zhis[3], (shi, shang)) and ('食' in zhi_shen3[1] or '伤' in zhi_shen3[1]):
+if zhi_ku(ming.zhis[3], (shi, shang)) and ('食' in zhi_shen3[1] or '伤' in zhi_shen3[1]):
     print("时食库，月食当令，孤克。")
 
 # 自坐食伤库
-if zhi_ku(zhis[2], (shi, shang)):  
-    if zhis[3] == guan_lu:
+if zhi_ku(ming.zhis[2], (shi, shang)):  
+    if ming.zhis[3] == guan_lu:
         print("坐食伤库：时支官，发达时接近寿终。 母法总则P60-13 乙丑 丙戌 庚辰 壬午")
 
 # 自坐食伤库
-if zhi_ku(zhis[3], (shi, shang)):  
+if zhi_ku(ming.zhis[3], (shi, shang)):  
         
-    if zhis[1] in (shi_di, shi_lu):
+    if ming.zhis[1] in (shi_di, shi_lu):
         print("坐食伤库：月支食伤当令，吉命而孤克。 母法总则P60-14 甲戌 丙子 辛卯 壬辰")
     
 
@@ -1713,7 +1550,7 @@ if '伤' in gan_shens:
     if gan_shens[0] == '伤' and gan_shens[1] == '伤' and (not '伤' in zhi_shens2):
         print("年月天干都浮现伤官，亲属少。")
 
-    if zhi_shens[1]  == '伤' and len(zhi5[zhis[1]]) == 1 and gan_shens[1] == '伤':
+    if zhi_shens[1]  == '伤' and len(zhi5[ming.zhis[1]]) == 1 and gan_shens[1] == '伤':
         print("月柱：伤官坐专位伤官，夫缘不定。假夫妻。比如老板和小蜜。")
 
 
@@ -1724,156 +1561,52 @@ if '伤' in gan_shens:
             print("伤官地支坐阳刃，力不从心 基70己酉 丁卯 甲午 辛未。背禄逐马，克官劫财。影响15年。伤官坐劫财：只适合纯粹之精明商人或严谨掌握财之人。")       
             
 if shens2.count('伤') > 2:
-    if options.n:        
+    if ming.is_women:        
         print("女命伤官多，即使不入伤官格，也缘分浅，多有苦情。")
     if gan_shens.count('伤') > 2:
         print("天干2伤官：性骄，六亲不靠。婚前诉说家人，婚后埋怨老公。30岁以前为婚姻危机期。")
         
     
-if zhi_shens[2]  == '伤' and len(zhi5[zhis[2]]) == 1:
+if zhi_shens[2]  == '伤' and len(zhi5[ming.zhis[2]]) == 1:
     print("女命婚姻宫伤官：强势克夫。男的对妻子不利。只有庚子日。")
     
-if gan_shens[3]  == '伤' and me_lu == zhis[3]:
+if gan_shens[3]  == '伤' and me_lu == ming.zhis[3]:
     print("伤官坐时禄：六亲不靠，无冲刑晚年发，有冲刑不发。 母法P27-96己未 壬申 己亥 庚午, 可以参三命。")
 
-if zhis[3]  in (shang_lu, shang_di) and  zhis[1]  in (shang_lu, shang_di):
+if ming.zhis[3]  in (shang_lu, shang_di) and  ming.zhis[1]  in (shang_lu, shang_di):
     print("月支时支食伤当令：日主无根，泄尽日主，凶。 母法P28-104 甲午 乙亥 庚戌 丙子  母法P60-104")
     
 #print("shang", shang, ten_deities[shang].inverse['建'], zhi_shens)
-if ten_deities[shang].inverse['建'] in zhis and options.n:
+if ten_deities[shang].inverse['建'] in ming.zhis and ming.is_women:
     print("女命地支伤官禄：婚姻受不得穷。")        
     
 print("局", jus, "格", all_ges, )
 
 
-if me+zhis.month in months:
+if ming.me+ming.zhis.month in months:
     print("\n\n《穷通宝鉴》")    
     print("=========================")      
-    print(months[me+zhis.month])
+    print(months[ming.me+ming.zhis.month])
 
 
-sum_index = ''.join([me, '日', *zhus[3]])
+sum_index = ''.join([ming.me, '日', *ming.zhus[3]])
 if sum_index in summarys:
     print("\n\n《三命通会》")    
     print("=========================")      
     print(summarys[sum_index])
 
-if not options.b:
-    print("\n\n大运")    
-    print("="*120)  
-    for dayun in yun.getDaYun()[1:]:
-        gan_ = dayun.getGanZhi()[0]
-        zhi_ = dayun.getGanZhi()[1]
-        fu = '*' if (gan_, zhi_) in zhus else " "
-        zhi5_ = ''
-        for gan in zhi5[zhi_]:
-            zhi5_ = zhi5_ + "{}{}　".format(gan, ten_deities[me][gan]) 
-        
-        zhi__ = set() # 大运地支关系
-        
-        for item in zhis:
-        
-            for type_ in zhi_atts[zhi_]:
-                if item in zhi_atts[zhi_][type_]:
-                    zhi__.add(type_ + ":" + item)
-        zhi__ = '  '.join(zhi__)
-        
-        empty = chr(12288)
-        if zhi_ in empties[zhus[2]]:
-            empty = '空'        
-        
-        jia = ""
-        if gan_ in gans:
-            for i in range(4):
-                if gan_ == gans[i]:
-                    if abs(Zhi.index(zhi_) - Zhi.index(zhis[i])) == 2:
-                        jia = jia + "  --夹：" +  Zhi[( Zhi.index(zhi_) + Zhi.index(zhis[i]) )//2]
-                    if abs( Zhi.index(zhi_) - Zhi.index(zhis[i]) ) == 10:
-                        jia = jia + "  --夹：" +  Zhi[(Zhi.index(zhi_) + Zhi.index(zhis[i]))%12]
-                
-        out = "{1:<4d}{2:<5s}{3} {15} {14} {13}  {4}:{5}{8}{6:{0}<6s}{12}{7}{8}{9} - {10:{0}<10s} {11}".format(
-            chr(12288), dayun.getStartAge(), '', dayun.getGanZhi(),ten_deities[me][gan_], gan_,check_gan(gan_, gans), 
-            zhi_, yinyang(zhi_), ten_deities[me][zhi_], zhi5_, zhi__,empty, fu, nayins[(gan_, zhi_)], ten_deities[me][zhi_]) 
-        gan_index = Gan.index(gan_)
-        zhi_index = Zhi.index(zhi_)
-        out = out + jia + get_shens(gans, zhis, gan_, zhi_)
-        
-        print(out)
-        zhis2 = list(zhis) + [zhi_]
-        gans2 = list(gans) + [gan_]
-        for liunian in dayun.getLiuNian():
-            gan2_ = liunian.getGanZhi()[0]
-            zhi2_ = liunian.getGanZhi()[1]
-            fu2 = '*' if (gan2_, zhi2_) in zhus else " "
-            #print(fu2, (gan2_, zhi2_),zhus)
-            
-            zhi6_ = ''
-            for gan in zhi5[zhi2_]:
-                zhi6_ = zhi6_ + "{}{}　".format(gan, ten_deities[me][gan])        
-            
-            # 大运地支关系
-            zhi__ = set() # 大运地支关系
-            for item in zhis2:
-            
-                for type_ in zhi_atts[zhi2_]:
-                    if type_ == '破':
-                        continue
-                    if item in zhi_atts[zhi2_][type_]:
-                        zhi__.add(type_ + ":" + item)
-            zhi__ = '  '.join(zhi__)
-            
-            empty = chr(12288)
-            if zhi2_ in empties[zhus[2]]:
-                empty = '空'       
-            out = "{1:>3d} {2:<5d}{3} {15} {14} {13}  {4}:{5}{8}{6:{0}<6s}{12}{7}{8}{9} - {10:{0}<10s} {11}".format(
-                chr(12288), liunian.getAge(), liunian.getYear(), gan2_+zhi2_,ten_deities[me][gan2_], gan2_,check_gan(gan2_, gans2), 
-                zhi2_, yinyang(zhi2_), ten_deities[me][zhi2_], zhi6_, zhi__,empty, fu2, nayins[(gan2_, zhi2_)], ten_deities[me][zhi2_]) 
-            
-            jia = ""
-            if gan2_ in gans2:
-                for i in range(5):
-                    if gan2_ == gans2[i]:
-                        zhi1 = zhis2[i]
-                        if abs(Zhi.index(zhi2_) - Zhi.index(zhis2[i])) == 2:
-                            # print(2, zhi2_, zhis2[i])
-                            jia = jia + "  --夹：" +  Zhi[( Zhi.index(zhi2_) + Zhi.index(zhis2[i]) )//2]
-                        if abs( Zhi.index(zhi2_) - Zhi.index(zhis2[i]) ) == 10:
-                            # print(10, zhi2_, zhis2[i])
-                            jia = jia + "  --夹：" +  Zhi[(Zhi.index(zhi2_) + Zhi.index(zhis2[i]))%12]  
 
-                        if (zhi1 + zhi2_ in gong_he) and (gong_he[zhi1 + zhi2_] not in zhis):
-                            jia = jia + "  --拱：" + gong_he[zhi1 + zhi2_]
-                            
-            out = out + jia + get_shens(gans, zhis, gan2_, zhi2_)
-            all_zhis = set(zhis2) | set(zhi2_)
-            if set('戌亥辰巳').issubset(all_zhis):
-                out = out + "  天罗地网：戌亥辰巳"
-            if set('寅申巳亥').issubset(all_zhis) and len(set('寅申巳亥')&set(zhis)) == 2 :
-                out = out + "  四生：寅申巳亥"   
-            if set('子午卯酉').issubset(all_zhis) and len(set('子午卯酉')&set(zhis)) == 2 :
-                out = out + "  四败：子午卯酉"  
-            if set('辰戌丑未').issubset(all_zhis) and len(set('辰戌丑未')&set(zhis)) == 2 :
-                out = out + "  四库：辰戌丑未"             
-            print(out)
-            
-        
-    
-    # 计算星宿
-    d2 = datetime.date(1, 1, 4)
-    print("星宿", lunar.getXiu(), lunar.getXiuSong())
-    
-    # 计算建除
-    seq = 12 - Zhi.index(zhis.month)
-    print(jianchus[(Zhi.index(zhis.day) + seq)%12])        
+# 计算大运
+get_yun(ming)  
     
 # 检查三会 三合的拱合
 result = ''
 #for i in range(2):
-    #result += check_gong(zhis, i*2, i*2+1, me, gong_he)
-    #result += check_gong(zhis, i*2, i*2+1, me, gong_hui, '三会拱')
+    #result += check_gong(ming.zhis, i*2, i*2+1, me, gong_he)
+    #result += check_gong(ming.zhis, i*2, i*2+1, me, gong_hui, '三会拱')
 
-result += check_gong(zhis, 1, 2, me, gong_he)
-result += check_gong(zhis, 1, 2, me, gong_hui, '三会拱')
+result += check_gong(ming.zhis, 1, 2, ming.me, gong_he)
+result += check_gong(ming.zhis, 1, 2, ming.me, gong_hui, '三会拱')
     
 if result:
     print(result)
@@ -1884,31 +1617,31 @@ print("="*120)
 
 # 格局分析
 ge = ''
-if (me, zhis.month) in jianlus:
+if (ming.me, ming.zhis.month) in jianlus:
     print(jianlu_desc)
     print("-"*120)
-    print(jianlus[(me, zhis.month)]) 
+    print(jianlus[(ming.me, ming.zhis.month)]) 
     print("-"*120 + "\n")
     ge = '建'
-#elif (me == '丙' and ('丙','申') in zhus) or (me == '甲' and ('己','巳') in zhus):
+#elif (ming.me == '丙' and ('丙','申') in zhus) or (ming.me == '甲' and ('己','巳') in zhus):
     #print("格局：专财. 运行官旺 财神不背,大发财官。忌行伤官、劫财、冲刑、破禄之运。喜身财俱旺")
-elif (me, zhis.month) in (('甲','卯'), ('庚','酉'), ('壬','子')):
+elif (ming.me, ming.zhis.month) in (('甲','卯'), ('庚','酉'), ('壬','子')):
     ge = '月刃'
 else:
-    zhi = zhis[1]
-    if zhi in wuhangs['土'] or (me, zhis.month) in (('乙','寅'), ('丙','午'),  ('丁','巳'), ('戊','午'), ('己','巳'), ('辛','申'), ('癸','亥')):
+    zhi = ming.zhis[1]
+    if zhi in wuhangs['土'] or (ming.me, ming.zhis.month) in (('乙','寅'), ('丙','午'),  ('丁','巳'), ('戊','午'), ('己','巳'), ('辛','申'), ('癸','亥')):
         for item in zhi5[zhi]:
-            if item in gans[:2] + gans[3:]:
-                ge = ten_deities[me][item]
+            if item in ming.gans[:2] + ming.gans[3:]:
+                ge = ten_deities[ming.me][item]
     else:
         d = zhi5[zhi]
-        ge = ten_deities[me][max(d, key=d.get)]
+        ge = ten_deities[ming.me][max(d, key=d.get)]
 
 # 天乙贵人
 flag = False
-for items in tianyis[me]:
+for items in tianyis[ming.me]:
     for item in items:
-        if item in zhis:
+        if item in ming.zhis:
             if not flag:
                 print("| 天乙贵人：", end=' ')
                 flag = True
@@ -1916,76 +1649,76 @@ for items in tianyis[me]:
             
 # 玉堂贵人
 flag = False
-for items in yutangs[me]:
+for items in yutangs[ming.me]:
     for item in items:
-        if item in zhis:
+        if item in ming.zhis:
             if not flag:
                 print("| 玉堂贵人：", end=' ')
                 flag = True
             print(item, end=' ')            
 
 # 天罗
-if  nayins[zhus[0]][-1] == '火':			
-    if zhis.day in '戌亥':
-        print("| 天罗：{}".format(zhis.day), end=' ') 
+if  nayins[ming.zhus[0]][-1] == '火':			
+    if ming.zhis.day in '戌亥':
+        print("| 天罗：{}".format(ming.zhis.day), end=' ') 
 
 # 地网		
-if  nayins[zhus[0]][-1] in '水土':			
-    if zhis.day in '辰巳':
-        print("| 地网：{}".format(zhis.day), end=' ') 		
+if  nayins[ming.zhus[0]][-1] in '水土':			
+    if ming.zhis.day in '辰巳':
+        print("| 地网：{}".format(ming.zhis.day), end=' ') 		
 
 
 
 # 学堂分析
 for seq, item in enumerate(statuses):
     if item == '长':
-        print("学堂:", zhis[seq], "\t", end=' ')
-        if  nayins[zhus[seq]][-1] == ten_deities[me]['本']:
-            print("正学堂:", nayins[zhus[seq]], "\t", end=' ')
+        print("学堂:", ming.zhis[seq], "\t", end=' ')
+        if  nayins[ming.zhus[seq]][-1] == ten_deities[ming.me]['本']:
+            print("正学堂:", nayins[ming.zhus[seq]], "\t", end=' ')
 
 
-#xuetang = xuetangs[ten_deities[me]['本']][1]
-#if xuetang in zhis:
+#xuetang = xuetangs[ten_deities[ming.me]['本']][1]
+#if xuetang in ming.zhis:
     #print("学堂:", xuetang, "\t\t", end=' ')
-    #if xuetangs[ten_deities[me]['本']] in zhus:
-        #print("正学堂:", xuetangs[ten_deities[me]['本']], "\t\t", end=' ')
+    #if xuetangs[ten_deities[ming.me]['本']] in zhus:
+        #print("正学堂:", xuetangs[ten_deities[ming.me]['本']], "\t\t", end=' ')
 
 # 学堂分析
 
 for seq, item in enumerate(statuses):
     if item == '建':
-        print("| 词馆:", zhis[seq], end=' ')
-        if  nayins[zhus[seq]][-1] == ten_deities[me]['本']:
-            print("- 正词馆:", nayins[zhus[seq]], end=' ')
+        print("| 词馆:", ming.zhis[seq], end=' ')
+        if  nayins[ming.zhus[seq]][-1] == ten_deities[ming.me]['本']:
+            print("- 正词馆:", nayins[ming.zhus[seq]], end=' ')
 
 
-ku = ten_deities[me]['库'][0]    
-if ku in zhis:
+ku = ten_deities[ming.me]['库'][0]    
+if ku in ming.zhis:
     print("库：",ku, end=' ')
 
-    for item in zhus: 
-        if ku != zhus[1]:
+    for item in ming.zhus: 
+        if ku != ming.zhus[1]:
             continue
-        if nayins[item][-1] == ten_deities[me]['克']:
+        if nayins[item][-1] == ten_deities[ming.me]['克']:
             print("库中有财，其人必丰厚")
-        if nayins[item][-1] == ten_deities[me]['被克']:
-            print(item, ten_deities[me]['被克'])
+        if nayins[item][-1] == ten_deities[ming.me]['被克']:
+            print(item, ten_deities[ming.me]['被克'])
             print("绝处无依，其人必滞")    
 
 print()
 
 # 天元分析
-for item in zhi5[zhis[2]]:    
-    name = ten_deities[me][item]
+for item in zhi5[ming.zhis[2]]:    
+    name = ten_deities[ming.me][item]
     print(self_zuo[name])
 print("-"*120)
 
 
 # 出身分析
-cai = ten_deities[me].inverse['财']
-guan = ten_deities[me].inverse['官']
-jie = ten_deities[me].inverse['劫']
-births = tuple(gans[:2])
+cai = ten_deities[ming.me].inverse['财']
+guan = ten_deities[ming.me].inverse['官']
+jie = ten_deities[ming.me].inverse['劫']
+births = tuple(ming.gans[:2])
 if cai in births and guan in births:
     birth = '不错'
 #elif cai in births or guan in births:
@@ -2029,20 +1762,20 @@ if ge == '食':
 
     for seq, item in enumerate(gan_shens):
         if item == '食':
-            if ten_deities[gans[seq]][zhis[seq]] == '墓':
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '墓':
                 print("食入墓，即是伤官入墓，住寿难延。")  
 
 
     for seq, item in enumerate(gan_shens):
         if item == '食' or zhi_shens[seq] == '食':
-            if get_empty(zhus[2],zhis[seq]):
+            if get_empty(zhus[2],ming.zhis[seq]):
                 print("大忌空亡，更有官煞显露，为太医师巫术数九流之士，若食神逢克，又遇空亡，则不贵，再行死绝或枭运，则因食上气上生灾，翻胃噎食，缺衣食，忍饥寒而已")                     
 
     # 倒食分析
-    if '枭' in shens and (me not in ['庚', '辛','壬']) and ten_deities[me] != '建':
+    if '枭' in shens and (ming.me not in ['庚', '辛','壬']) and ten_deities[ming.me] != '建':
         flag = True
-        for item in zhi5[zhis.day]:
-            if ten_deities[me]['合'] == item:
+        for item in zhi5[ming.zhis.day]:
+            if ten_deities[ming.me]['合'] == item:
                 flag = False
                 break
         if flag:
@@ -2071,7 +1804,7 @@ if ge == '伤':
         if '财' in shens or '才' in shens:
             print('财印相克，本不并用，只要干头两清而不相碍；又必生财者，财太旺而带印，佩印者印太重而带财，调停中和，遂为贵格')
     if ('官' in shens) :
-        print(shang_guans[ten_deities[me]['本']])   
+        print(shang_guans[ten_deities[ming.me]['本']])   
         print('金水独宜，然要财印为辅，不可伤官并透。若冬金用官，而又化伤为财，则尤为极秀极贵。若孤官无辅，或官伤并透，则发福不大矣。')
     if ('杀' in shens) :
         print("煞因伤而有制，两得其宜，只要无财，便为贵格")   
@@ -2080,13 +1813,13 @@ if ge == '伤':
 
     for seq, item in enumerate(gan_shens):
         if item == '伤':
-            if ten_deities[gans[seq]][zhis[seq]] == '墓':
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '墓':
                 print("食入墓，即是伤官入墓，住寿难延。")  
 
 
     for seq, item in enumerate(gan_shens):
         if item == '食' or zhi_shens[seq] == '食':
-            if get_empty(zhus[2],zhis[seq]):
+            if get_empty(zhus[2],ming.zhis[seq]):
                 print("大忌空亡，更有官煞显露，为太医师巫术数九流之士，若食神逢克，又遇空亡，则不贵，再行死绝或枭运，则因食上气上生灾，翻胃噎食，缺衣食，忍饥寒而已")                     
     print()
     print("-"*120)    
@@ -2123,7 +1856,7 @@ if ge == '财' or ge == '才':
         print("岁带正马：月令有财或伤食，不犯刑冲分夺，旺祖业丰厚。同类月令且带比，或遇运行伤劫 贫")
     if "财" == zhi_shens[3]:
         print("时带正马：无冲刑破劫，主招美妻，得外来财物，生子荣贵，财产丰厚，此非父母之财，乃身外之财，招来产业，宜俭不宜奢。")      
-    if "财" == zhi_shens[2] and (me not in ('壬','癸')):
+    if "财" == zhi_shens[2] and (ming.me not in ('壬','癸')):
         print("天元坐财：喜印食 畏官煞，喜月令旺 ")              
     if ('官' not in shens) and ('伤' not in shens) and ('食' not in shens):
         print("财旺生官:若月令财无损克，亦主登科")
@@ -2141,9 +1874,9 @@ if ge == '财' or ge == '才':
         print("财不宜明露")  
     for seq, item in enumerate(gan_shens):
         if item == '财':
-            if ten_deities[gans[seq]][zhis[seq]] == '墓':
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '墓':
                 print("财星入墓，必定刑妻")  
-            if ten_deities[gans[seq]][zhis[seq]] == '长':   
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '长':   
                 print("财遇长生，田园万顷")  
 
     if ('官' not in shens) and (('劫' in shens) or ('比' in shens)):
@@ -2153,14 +1886,14 @@ if ge == '财' or ge == '才':
         print("兄弟辈出: 纵入官乡，发福必渺.")        
 
     for seq, item in enumerate(zhi_shens):
-        if item == '才' or ten_deities[me][zhis[seq]] == '才':
-            if get_empty(zhus[2],zhis[seq]):
+        if item == '才' or ten_deities[ming.me][ming.zhis[seq]] == '才':
+            if get_empty(zhus[2],ming.zhis[seq]):
                 print("空亡 官将不成，财将不住")  
 
     print("-"*120)         
 
 # 财库分析
-if ten_deities[ten_deities[me].inverse["财"]]['库'][-1] in zhis:
+if ten_deities[ten_deities[ming.me].inverse["财"]]['库'][-1] in ming.zhis:
     print("财临库墓: 一生财帛丰厚，因财致官, 天干透土更佳")   
 if cai_num < 2 and (('劫' in shens) or ('比' in shens)):
     print("财少身强，柱有比劫，不为福")   
@@ -2202,9 +1935,9 @@ if ge == "官":
         print("天福贵人:主科名巍峨，官职尊崇，多掌丝纶文翰之美!")
 
     # 天元坐禄    
-    if guan in zhi5[zhis[2]]:
+    if guan in zhi5[ming.zhis[2]]:
         print("天元作禄: 日主与官星并旺,才是贵命。大多不贵即富,即使是命局中有缺点,行到好的大运时,便能一发如雷。")
-        print(tianyuans[ten_deities[me]['本']])         
+        print(tianyuans[ten_deities[ming.me]['本']])         
 
     # 岁德正官
     if gan_shens[0] == '官' or zhi_shens[0] == '官':
@@ -2217,9 +1950,9 @@ if ge == "官":
     print()
     print("-"*120)  
 # 官库分析
-if ten_deities[ten_deities[me].inverse["官"]]['库'][-1] in zhis:
+if ten_deities[ten_deities[ming.me].inverse["官"]]['库'][-1] in ming.zhis:
     print("官临库墓")   
-    if lu_ku_cai[me] in zhis:
+    if lu_ku_cai[ming.me] in ming.zhis:
         print("官印禄库: 有官库，且库中有财")
 
 # 杀(偏官)分析
@@ -2269,7 +2002,7 @@ if ge == "杀":
 
     for seq, item in enumerate(gan_shens):
         if item == '杀':
-            if ten_deities[gans[seq]][zhis[seq]] == '长':   
+            if ten_deities[ming.gans[seq]][ming.zhis[seq]] == '长':   
                 print("七煞遇长生乙位，女招贵夫。")  
     print()
     print("-"*120)      
@@ -2320,39 +2053,39 @@ if ge == "枭":
 
 
 
-gan_ = tuple(gans)
+gan_ = tuple(ming.gans)
 for item in Gan:
     if gan_.count(item) == 3:
         print("三字干：", item, "--", gan3[item])
         break
 
-gan_ = tuple(gans)
+gan_ = tuple(ming.gans)
 for item in Gan:
     if gan_.count(item) == 4:
         print("四字干：", item, "--", gan4[item])
         break    
 
-zhi_ = tuple(zhis)
+zhi_ = tuple(ming.zhis)
 for item in Zhi:
     if zhi_.count(item) > 2:
         print("三字支：", item, "--", zhi3[item])
         break
 
 print("="*120)  
-print("你属:", me, "特点：--", gan_desc[me],"\n")
-print("年份:", zhis[0], "特点：--", zhi_desc[zhis[0]],"\n")
+print("你属:", ming.me, "特点：--", gan_desc[ming.me],"\n")
+print("年份:", ming.zhis[0], "特点：--", zhi_desc[ming.zhis[0]],"\n")
 
 
 
 
 
 # 羊刃分析
-key = '帝' if Gan.index(me)%2 == 0 else '冠'
+key = '帝' if Gan.index(ming.me)%2 == 0 else '冠'
 
-if ten_deities[me].inverse[key] in zhis:
-    print("\n羊刃:", me, ten_deities[me].inverse[key])  
+if ten_deities[ming.me].inverse[key] in ming.zhis:
+    print("\n羊刃:", me, ten_deities[ming.me].inverse[key])  
     print("======================参考：https://www.jianshu.com/p/c503f7b3ed04")  
-    if ten_deities[me].inverse['冠']:
+    if ten_deities[ming.me].inverse['冠']:
         print("羊刃重重又见禄，富贵饶金玉。 官、印相助福相资。")  
     else:
         print("劳累命！")
@@ -2361,26 +2094,26 @@ if ten_deities[me].inverse[key] in zhis:
 
 
 # 将星分析
-me_zhi = zhis[2]
-other_zhis = zhis[:2] + zhis[3:]
+me_zhi = ming.zhis[2]
+other_zhis = ming.zhis[:2] + ming.zhis[3:]
 flag = False
 tmp_list = []
 if me_zhi in ("申", "子", "辰"):
     if "子" in other_zhis:
         flag = True
-        tmp_list.append((me_zhi, '子'))
+        tmp_list.append((ming.me_zhi, '子'))
 elif me_zhi in ("丑", "巳", "酉"):
     if "酉" in other_zhis:
         flag = True   
-        tmp_list.append((me_zhi, '酉'))
+        tmp_list.append((ming.me_zhi, '酉'))
 elif me_zhi in ("寅", "午", "戌"):
     if "午" in other_zhis:
         flag = True     
-        tmp_list.append((me_zhi, '午'))
+        tmp_list.append((ming.me_zhi, '午'))
 elif me_zhi in ("亥", "卯", "未"):
     if "卯" in other_zhis:
         flag = True   
-        tmp_list.append((me_zhi, '卯'))
+        tmp_list.append((ming.me_zhi, '卯'))
 
 if flag:
     print("\n\n将星: 常欲吉星相扶，贵煞加临乃为吉庆。")  
@@ -2416,9 +2149,9 @@ if flag:
 # 咸池 桃花
 flag = False
 taohuas = []
-year_zhi = zhis[0]
+year_zhi = ming.zhis[0]
 if me_zhi in ("申", "子", "辰") or year_zhi in ("申", "子", "辰"):
-    if "酉" in zhis:
+    if "酉" in ming.zhis:
         flag = True
         taohuas.append("酉")
 elif me_zhi in ("丑", "巳", "酉") or year_zhi in ("丑", "巳", "酉"):
@@ -2443,25 +2176,25 @@ if flag:
     或因妇人暗昧之财起家，平生有水厄、痨瘵之疾，累遭遗失暗昧之灾。此人入命，有破无成，
     非为吉兆，妇人尤忌之。
     咸池非吉煞，日时与水命遇之尤凶。''')  
-    print(taohuas, zhis)
+    print(taohuas, ming.zhis)
 
 # 禄分析
 flag = False
-for item in zhus:
-    if item in lu_types[me]:
+for item in ming.zhus:
+    if item in lu_types[ming.me]:
         if not flag:
             print("\n\n禄分析:")  
             print("=========================")	    
-        print(item,lu_types[me][item])
+        print(item,lu_types[ming.me][item])
  
 
 # 文星贵人
-if wenxing[me] in zhis:
-    print("文星贵人: ", me,  wenxing[me])  
+if wenxing[ming.me] in ming.zhis:
+    print("文星贵人: ", ming.me,  wenxing[ming.me])  
 
 # 天印贵人
-if tianyin[me] in zhis:
-    print("天印贵人: 此号天印贵，荣达受皇封", me,  tianyin[me])  
+if tianyin[ming.me] in ming.zhis:
+    print("天印贵人: 此号天印贵，荣达受皇封", ming.me,  tianyin[ming.me])  
 
 
 short = min(scores, key=scores.get)
@@ -2471,7 +2204,7 @@ print("\n\n五行缺{}的建议参见 http://t.cn/E6zwOMq".format(short))
     
 print("======================================")  
 if '杀' in shens:
-    if yinyang(me) == '+':
+    if yinyang(ming.me) == '+':
         print("阳杀:话多,热情外向,异性缘好")
     else:
         print("阴杀:话少,性格柔和")
