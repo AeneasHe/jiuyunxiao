@@ -40,9 +40,8 @@ me.get_zhengcai()
 me.get_zhengguan()
 me.get_qisha()
 
-
+# # 格局分析
 me.get_geju3()
-# 格局分析
 me.get_jiecai_ge()
 me.get_xiao_ge()
 me.get_yin_ge()
@@ -52,4 +51,5 @@ me.get_cai_ge()
 me.get_qisha_ge()
 me.get_zhengguan_ge()
 
-me.get_dayun_detail()
+# # 大运分析
+# me.get_dayun_detail()

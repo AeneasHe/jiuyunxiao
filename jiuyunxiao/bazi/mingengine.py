@@ -120,7 +120,6 @@ class MingEngine:
         self.strong = strong
         print("八字强弱程度：", self.strong)
 
-        print("-" * 120)
         # print(zhi_3hes, "生：寅申巳亥 败：子午卯酉　库：辰戌丑未")
         # print("地支六合:", zhi_6hes)
 
@@ -141,31 +140,25 @@ class MingEngine:
         print("\033[1;31;40m" + " ".join(list(ming.zhis)) + "\033[0m", " " * 5)
 
         # 副星
-        # print(
-        #     "\033[1;31;40m" + " ".join(list(ming.zhi_shens2)) + "\033[0m" + "\033[0m",
-        #     " " * 5,
-        # )
-
-        for cang in ming.zhi_shen3:
+        for cang_gan in ming.zhi_shen3:
             try:
-                print(cang[0], end=" ")
+                print(cang_gan[0], end=" ")
             except:
-                print(" ", end=" ")
+                print("--", end=" ")
         print()
-        for cang in ming.zhi_shen3:
+        for cang_gan in ming.zhi_shen3:
             try:
-                print(cang[1], end=" ")
+                print(cang_gan[1], end=" ")
             except:
-                print(" ", end=" ")
+                print("--", end=" ")
         print()
-        for cang in ming.zhi_shen3:
+        for cang_gan in ming.zhi_shen3:
             try:
-                print(cang[2], end=" ")
+                print(cang_gan[2], end=" ")
             except:
-                print(" ", end=" ")
+                print("--", end=" ")
         print()
 
-        print("-" * 120)
         print(
             "{1:{0}^15s}{2:{0}^15s}{3:{0}^15s}{4:{0}^15s}".format(
                 chr(12288),
@@ -192,7 +185,6 @@ class MingEngine:
                 ),
             )
         )
-        print("-" * 120)
 
         # 输出八字排盘详情
         print(
@@ -274,7 +266,6 @@ class MingEngine:
             )
 
         print()
-        print("================")
 
     def get_relationship(self):
         # 基本盘的害破会行
@@ -463,19 +454,83 @@ class MingEngine:
         for seq in range(2, 4):
             print("{1:{0}<14s} ".format(chr(12288), strs[seq]), end="")
 
+        temps_scores = (
+            temps[ming.gans.year]
+            + temps[ming.gans.month]
+            + temps[ming.me]
+            + temps[ming.gans.time]
+            + temps[ming.zhis.year]
+            + temps[ming.zhis.month] * 2
+            + temps[ming.zhis.day]
+            + temps[ming.zhis.time]
+        )
+        print(
+            "\n\033[1;32;40m五行分数",
+            self.scores,
+            "  \n八字强弱：",
+            self.strong,
+            "通常>29为强，需要参考月份、坐支等",
+            "weak:",
+            self.weak,
+        )
+        print(
+            "湿度分数",
+            temps_scores,
+            "正为暖燥，负为寒湿，正常区间[-6,6] 拱：",
+            get_gong(ming.zhis, ming.gans),
+            "\033[0m",
+        )
+        for item in self.gan_scores:
+            print(
+                "{}[{}]-{} ".format(
+                    item, ten_deities[ming.me][item], self.gan_scores[item]
+                ),
+                end="  ",
+            )
+        print()
+
+        # 女人以食伤为子嗣 ，男人以官杀为子嗣
+        children = ["食", "伤"] if ming.is_women else ["官", "杀"]
+        # print("子嗣: ", children)
+
+        print("\n\033[1;34;40m" + "六亲" + "\033[0m")
+
+        liuqins = bidict(
+            {
+                "才": "父亲",
+                "财": "财" if ming.is_women else "妻",
+                "印": "母亲",
+                "枭": "偏印" if ming.is_women else "祖父",
+                "官": "丈夫" if ming.is_women else "女儿",
+                "杀": "情夫" if ming.is_women else "儿子",
+                "劫": "兄弟" if ming.is_women else "姐妹",
+                "比": "姐妹" if ming.is_women else "兄弟",
+                "食": "女儿" if ming.is_women else "下属",
+                "伤": "儿子" if ming.is_women else "孙女",
+            }
+        )
+
+        # 六亲分析
+
+        for item in Gan:
+            print(
+                "{}:{} {}-{} {} {} {}".format(
+                    item,
+                    ten_deities[ming.me][item],
+                    liuqins[ten_deities[ming.me][item]],
+                    ten_deities[item][ming.zhis[0]],
+                    ten_deities[item][ming.zhis[1]],
+                    ten_deities[item][ming.zhis[2]],
+                    ten_deities[item][ming.zhis[3]],
+                ),
+                end="  ",
+            )
+            if Gan.index(item) == 4:
+                print()
+            print()
+        print()
+
     def get_dayun(self):
-        print()
-        print("-" * 120)
-        print("大运：", end=" ")
-
-        for item in self.dayuns:
-            print(item, end=" ")
-        print()
-        # for item in ming.gans:
-        #     print(get_gen(item, ming.zhis), end=" \t")
-        # print()
-        print("-" * 120)
-
         self.me_lu = ten_deities[ming.me].inverse["建"]
         self.me_jue = ten_deities[ming.me].inverse["绝"]
         self.me_tai = ten_deities[ming.me].inverse["胎"]
@@ -529,6 +584,16 @@ class MingEngine:
         self.yin_ku = ten_deities[self.yin]["库"][0]
         self.shi_ku = ten_deities[self.shi]["库"][0]
 
+    def get_geju(self):
+        print("\033[1;34;40m" + "大运" + "\033[0m")
+
+        for item in self.dayuns:
+            print(item, end=" ")
+        print()
+        # for item in ming.gans:
+        #     print(get_gen(item, ming.zhis), end=" \t")
+        # print()
+
         print(
             "调候：",
             tiaohous["{}{}".format(ming.me, ming.zhis[1])],
@@ -536,8 +601,6 @@ class MingEngine:
             jinbuhuan["{}{}".format(ming.me, ming.zhis[1])],
         )
         print("金不换大运：说明：", jins["{}".format(ming.me)])
-
-    def get_geju(self):
 
         print("格局选用：", ges[ten_deities[ming.me]["本"]][ming.zhis[1]])
 
@@ -616,97 +679,11 @@ class MingEngine:
             if ming.gan_shens[0] == "伤":
                 print("年上伤官：带疾生产。P110 戊寅 戊午 丁未 丁未")
 
-        print("-" * 120)
-
-        children = ["食", "伤"] if ming.is_women else ["官", "杀"]
-        print("子嗣: ", children)
-
-        liuqins = bidict(
-            {
-                "才": "父亲",
-                "财": "财" if ming.is_women else "妻",
-                "印": "母亲",
-                "枭": "偏印" if ming.is_women else "祖父",
-                "官": "丈夫" if ming.is_women else "女儿",
-                "杀": "情夫" if ming.is_women else "儿子",
-                "劫": "兄弟" if ming.is_women else "姐妹",
-                "比": "姐妹" if ming.is_women else "兄弟",
-                "食": "女儿" if ming.is_women else "下属",
-                "伤": "儿子" if ming.is_women else "孙女",
-            }
-        )
-
-        # 六亲分析
-        for item in Gan:
-            print(
-                "{}:{} {}-{} {} {} {}".format(
-                    item,
-                    ten_deities[ming.me][item],
-                    liuqins[ten_deities[ming.me][item]],
-                    ten_deities[item][ming.zhis[0]],
-                    ten_deities[item][ming.zhis[1]],
-                    ten_deities[item][ming.zhis[2]],
-                    ten_deities[item][ming.zhis[3]],
-                ),
-                end="  ",
-            )
-            if Gan.index(item) == 4:
-                print()
-        print()
-
         # 计算上运时间，有年份时才适用
-
-        temps_scores = (
-            temps[ming.gans.year]
-            + temps[ming.gans.month]
-            + temps[ming.me]
-            + temps[ming.gans.time]
-            + temps[ming.zhis.year]
-            + temps[ming.zhis.month] * 2
-            + temps[ming.zhis.day]
-            + temps[ming.zhis.time]
-        )
-        print(
-            "\033[1;32;40m五行分数",
-            self.scores,
-            "  \n八字强弱：",
-            self.strong,
-            "通常>29为强，需要参考月份、坐支等",
-            "weak:",
-            self.weak,
-        )
 
         gongs = get_gong(ming.zhis, ming.gans)
         ming.zhis_g = set(ming.zhis) | set(gongs)
 
-        jus = []
-        for item in zhi_hes:
-            if set(item).issubset(ming.zhis_g):
-                print("三合局", item)
-                jus.append(ju[ten_deities[ming.me].inverse[zhi_hes[item]]])
-
-        for item in zhi_huis:
-            if set(item).issubset(ming.zhis_g):
-                print("三会局", item)
-                jus.append(ju[ten_deities[ming.me].inverse[zhi_huis[item]]])
-        self.jus = jus
-        print(
-            "湿度分数",
-            temps_scores,
-            "正为暖燥，负为寒湿，正常区间[-6,6] 拱：",
-            get_gong(ming.zhis, ming.gans),
-            "\033[0m",
-        )
-
-        for item in self.gan_scores:
-            print(
-                "{}[{}]-{} ".format(
-                    item, ten_deities[ming.me][item], self.gan_scores[item]
-                ),
-                end="  ",
-            )
-        print()
-        print("-" * 120)
         yinyangs(ming.zhis)
         self.shen_zhus = list(zip(ming.gan_shens, ming.zhi_shens))
 
@@ -726,6 +703,17 @@ class MingEngine:
 
     # 计算格局
     def get_geju2(self):
+        jus = []
+        for item in zhi_hes:
+            if set(item).issubset(ming.zhis_g):
+                print("三合局", item)
+                jus.append(ju[ten_deities[ming.me].inverse[zhi_hes[item]]])
+
+        for item in zhi_huis:
+            if set(item).issubset(ming.zhis_g):
+                print("三会局", item)
+                jus.append(ju[ten_deities[ming.me].inverse[zhi_huis[item]]])
+        self.jus = jus
         # 魁罡格
         if ming.zhus[2] in (
             ("庚", "辰"),
@@ -940,7 +928,6 @@ class MingEngine:
         for item in zhi5[ming.zhis[2]]:
             name = ten_deities[ming.me][item]
             print(self_zuo[name])
-        print("-" * 120)
 
         # 出身分析
         cai = ten_deities[ming.me].inverse["财"]
@@ -982,7 +969,6 @@ class MingEngine:
                 print("三字支：", item, "--", zhi3[item])
                 break
 
-        print("=" * 120)
         print("你属:", ming.me, "特点：--", gan_desc[ming.me], "\n")
         print("年份:", ming.zhis[0], "特点：--", zhi_desc[ming.zhis[0]], "\n")
 
@@ -1020,7 +1006,6 @@ class MingEngine:
 
         if flag:
             print("\n\n将星: 常欲吉星相扶，贵煞加临乃为吉庆。")
-            print("=========================")
             print(
                 """理愚歌》云：将星若用亡神临，为国栋梁臣。言吉助之为贵，更夹贵库墓纯粹而
             不杂者，出将入相之格也，带华盖、正印而不夹库，两府之格也；只带库墓而带正印，员郎
@@ -1046,7 +1031,6 @@ class MingEngine:
 
         if flag:
             print("\n\n华盖: 多主孤寡，总贵亦不免孤独，作僧道艺术论。")
-            print("=========================")
             print(
                 """《理愚歌》云：华盖虽吉亦有妨，或为孽子或孤孀。填房入赘多阙口，炉钳顶笠拔缁黄。
             又云：华盖星辰兄弟寡，天上孤高之宿也；生来若在时与胎，便是过房庶出者。"""
@@ -1075,7 +1059,6 @@ class MingEngine:
 
         if flag:
             print("\n\n咸池(桃花): 墙里桃花，煞在年月；墙外桃花，煞在日时；")
-            print("=========================")
             print(
                 """一名败神，一名桃花煞，其神之奸邪淫鄙，如生旺则美容仪，耽酒色，疏财好欢，
             破散家业，唯务贪淫；如死绝，落魄不检，言行狡诈，游荡赌博，忘恩失信，私滥奸淫，
@@ -1092,7 +1075,6 @@ class MingEngine:
             if item in lu_types[ming.me]:
                 if not flag:
                     print("\n\n禄分析:")
-                    print("=========================")
                 print(item, lu_types[ming.me][item])
 
         # 文星贵人
@@ -1104,9 +1086,8 @@ class MingEngine:
             print("天印贵人: 此号天印贵，荣达受皇封", ming.me, tianyin[ming.me])
 
         short = min(self.scores, key=self.scores.get)
-        print("\n\n五行缺{}的建议参见 http://t.cn/E6zwOMq".format(short))
+        print("\n\n五行缺{}".format(short))
 
-        print("======================================")
         if "杀" in ming.shens:
             if yinyang(ming.me) == "+":
                 print("阳杀:话多,热情外向,异性缘好")
@@ -1124,6 +1105,11 @@ class MingEngine:
     def get_bijian(self):
         print()
         print("-" * 120)
+        print(
+            "\033[1;31;40m",
+            "【十神】",
+            "\033[0m",
+        )
         print("\n【1.比肩分析】")
         if "比" in ming.gan_shens:  # 天干比肩
             print(
@@ -2622,7 +2608,7 @@ class MingEngine:
     def get_jiecai_ge(self):
         print("1.【劫财格分析】")
         if self.ge == "劫":
-            print("\n****劫财(阳刃)分析****：阳刃冲合岁君,勃然祸至。身弱不作凶。")
+            print("\n劫财(阳刃)分析：阳刃冲合岁君,勃然祸至。身弱不作凶。")
             print("======================================")
             if "劫" == ming.gan_shens[3] or "劫" == ming.zhi_shens[3]:
                 print("劫财阳刃,切忌时逢,岁运并临,灾殃立至,独阳刃以时言,重于年月日也。")
@@ -2634,7 +2620,7 @@ class MingEngine:
         print("2.【印格分析】")
         if self.ge == "印":
             print(
-                "\n印分析 **** 喜:食神 天月德 七煞 逢印看煞 以官为引   忌： 刑冲 伤官 死墓 辰戊印怕木 丑未印不怕木"
+                "\n印分析  喜:食神 天月德 七煞 逢印看煞 以官为引   忌： 刑冲 伤官 死墓 辰戊印怕木 丑未印不怕木"
             )
             print("一曰正印 二曰魁星 三曰孙极星")
             print(
@@ -2669,7 +2655,7 @@ class MingEngine:
         print("3.【偏印格分析】")
         if self.ge == "枭":
             print(
-                "\n印分析 **** 喜:食神 天月德 七煞 逢印看煞 以官为引   忌： 刑冲 伤官 死墓 辰戊印怕木 丑未印不怕木"
+                "\n印分析  喜:食神 天月德 七煞 逢印看煞 以官为引   忌： 刑冲 伤官 死墓 辰戊印怕木 丑未印不怕木"
             )
             print("一曰正印 二曰魁星 三曰孙极星")
             print(
@@ -2702,7 +2688,7 @@ class MingEngine:
         print("4.【食神格分析】")
         if self.ge == "食":
             print(
-                "\n****食神分析****: 格要日主食神俱生旺，无冲破。有财辅助财有用。  食神可生偏财、克杀"
+                "\n食神分析: 格要日主食神俱生旺，无冲破。有财辅助财有用。  食神可生偏财、克杀"
             )
             print(
                 " 阳日食神暗官星，阴日食神暗正印。食神格人聪明、乐观、优雅、多才多艺。食居先，煞居后，功名显达。"
@@ -2765,9 +2751,7 @@ class MingEngine:
     def get_shuangguan_ge(self):
         print("5.【伤官格分析】")
         if self.ge == "伤":
-            print(
-                "\n****伤官分析****: 喜:身旺,财星,印绶,伤尽 忌:身弱,无财,刑冲,入墓枭印　"
-            )
+            print("\n伤官分析: 喜:身旺,财星,印绶,伤尽 忌:身弱,无财,刑冲,入墓枭印　")
             print(
                 " 多材艺，傲物气高，心险无忌惮，多谋少遂，弄巧成拙，常以天下之人不如己，而人亦惮之、恶之。 一名剥官神　　二名羊刃煞"
             )
@@ -2822,7 +2806,7 @@ class MingEngine:
 
         if self.ge == "财" or self.ge == "才":
             print(
-                "\n****财分析 **** 喜:旺,印,食,官 忌:比 羊刃 空绝 冲合   财星,天马星,催官星,壮志神"
+                "\n财分析  喜:旺,印,食,官 忌:比 羊刃 空绝 冲合   财星,天马星,催官星,壮志神"
             )
             if ming.gan_shens.count("财") + ming.gan_shens.count("才") > 1:
                 print(
@@ -2909,9 +2893,7 @@ class MingEngine:
     def get_zhengguan_ge(self):
         print("7.【官格分析】")
         if self.ge == "官":
-            print(
-                "\n**** 官分析 ****\n 喜:身旺 财印   忌：身弱 偏官 伤官 刑冲 泄气 贪合 入墓"
-            )
+            print("\n 官分析 \n 喜:身旺 财印   忌：身弱 偏官 伤官 刑冲 泄气 贪合 入墓")
             print(
                 "一曰正官 二曰禄神 最忌刑冲破害、伤官七煞，贪合忘官，劫财比等等，遇到这些情况便成为破格 财印并存要分开"
             )
@@ -2991,7 +2973,7 @@ class MingEngine:
         print("8.【七杀格分析】")
         if self.ge == "杀":
             print(
-                "\n杀(偏官)分析 **** 喜:身旺  印绶  合煞  食制 羊刃  比  逢煞看印及刃  以食为引   忌：身弱  财星  正官  刑冲  入墓"
+                "\n杀(偏官)分析  喜:身旺  印绶  合煞  食制 羊刃  比  逢煞看印及刃  以食为引   忌：身弱  财星  正官  刑冲  入墓"
             )
             print(
                 "一曰偏官 二曰七煞 三曰五鬼 四曰将星 五曰孤极星 原有制伏,煞出为福,原无制伏,煞出为祸   性情如虎，急躁如风,尤其是七杀为丙、丁火时。"
