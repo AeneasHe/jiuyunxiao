@@ -1,3 +1,4 @@
+from mingzao import Ming
 import argparse
 import collections
 from lunar_python import Lunar, Solar
@@ -26,8 +27,6 @@ optional arguments:
 python main.py 1977 8 11 19 -w
 """
 
-from mingzao import Ming
-
 
 def get_mingzao():
     parser = argparse.ArgumentParser(
@@ -39,8 +38,10 @@ def get_mingzao():
     parser.add_argument("time", action="store", help="time")
     parser.add_argument("--start", help="start year", type=int, default=1850)
     parser.add_argument("--end", help="end year", default="2030")
-    parser.add_argument("-b", action="store_true", default=False, help="直接输入八字")
-    parser.add_argument("-g", action="store_true", default=False, help="是否采用公历")
+    parser.add_argument("-b", action="store_true",
+                        default=False, help="直接输入八字")
+    parser.add_argument("-g", action="store_true",
+                        default=False, help="是否采用公历")
     parser.add_argument(
         "-r", action="store_true", default=False, help="是否为闰月，仅仅使用于农历"
     )
@@ -56,7 +57,7 @@ def get_mingzao():
     Zhis = collections.namedtuple("Zhis", "year month day time")
     lunar = None
 
-    print("-" * 120)
+    print("=" * 120)
 
     if options.b:  # 直接输入八字
         import sxtwl
@@ -101,9 +102,11 @@ def get_mingzao():
             )
             lunar = solar.getLunar()
         else:  # 农历
-            month_ = int(options.month) * -1 if options.r else int(options.month)
+            month_ = int(options.month) * - \
+                1 if options.r else int(options.month)
             lunar = Lunar.fromYmdHms(
-                int(options.year), month_, int(options.day), int(options.time), 0, 0
+                int(options.year), month_, int(
+                    options.day), int(options.time), 0, 0
             )
             solar = lunar.getSolar()
 
@@ -129,7 +132,8 @@ def get_mingzao():
         print("\033[1;31;40m" + "{}命".format(sex), end=" ")
         print("\t公历:", end=" ")
         print(
-            "{}年{}月{}日".format(solar.getYear(), solar.getMonth(), solar.getDay()),
+            "{}年{}月{}日".format(
+                solar.getYear(), solar.getMonth(), solar.getDay()),
             end=" ",
         )
 
